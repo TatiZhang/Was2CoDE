@@ -1,9 +1,12 @@
 context("Test ideas_dist_custom")
 library(testthat)
 library(transport)
+library(data.table)
+library(doRNG)
 # load("tests/assets/test_data1.RData")
 load("../assets/test_data1.RData")
-
+count_matrix <- round(count_matrix)
+count_matrix[count_matrix < 0] <- 0
 # Unit test for ideas_dist_custom
 test_that("ideas_dist_custom outputs correctly", {
   set.seed(10)

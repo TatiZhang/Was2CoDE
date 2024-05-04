@@ -1,4 +1,15 @@
-
+#' Title
+#'
+#' @param count_input 
+#' @param meta_cell 
+#' @param meta_ind 
+#' @param var_per_cell 
+#' @param var2test 
+#' @param var2test_type 
+#' @param per_cell_adjust 
+#'
+#' @return
+#' @export
 ideas_dist_custom <-
   function(count_input, # the input should be "genes" by "cells"
            meta_cell, meta_ind, var_per_cell, var2test, 
@@ -153,29 +164,36 @@ ideas_dist_custom <-
       dist_array_list=foreach (i_g = 1:n_gene) %dorng% {
         
         res_ig = dat_res[[i_g]]
-        dist_array1 = array(NA, dim=c(rep(nrow(meta_ind), 2), 6))
+        dist_array1 = array(NA, dim = c(rep(nrow(meta_ind), 2), 6))
         rownames(dist_array1) = meta_ind$individual
         colnames(dist_array1) = meta_ind$individual
-        diag(dist_array1) = 0
+        # Set diagonal elements for each matrix in the 3D array to 0
+        for (k in 1:6) {
+          diag(dist_array1[,,k]) <- 0
+        }
  
         # define divergence() using wasserstein1d()
-        divergence <- function(a, b, p=2, wa = NULL, wb = NULL) {
-            return(c(
-              distance = transport::wasserstein1d(a, b, p = p, wa = wa, wb = wb),
-              location = (mean(a)-mean(b))^2,
-              location_sign = mean(a) - mean(b),
-              size = (sd(a) - sd(b))^2,
-              size_sign = sd(a) - sd(b),
-              shape = (distance^2 - location - size)/(2*sd(a)*sd(b))
-          ))
+        divergence <- function(a, b, p = 2, wa = NULL, wb = NULL) {
+          distance = transport::wasserstein1d(a, b, p = p, wa = wa, wb = wb)
+          result = c(
+            distance = distance,
+            location = (mean(a) - mean(b))^2,
+            location_sign = mean(a) - mean(b),
+            size = (sd(a) - sd(b))^2,
+            size_sign = sd(a) - sd(b),
+            shape = (distance^2 - location - size) / (2 * sd(a) * sd(b))
+          )
+          if (length(result) != 6) {
+            stop("Result vector from divergence has incorrect length")
+          }
+          return(result)
         }
-          
+        # For loop 2:
+        # For each pair of donors 
+        # compute the wasserstein distance b/w 2 distributions
+        
         for (j_a in 1:(nrow(meta_ind)-1)) {
           res_a = res_ig[[j_a]]
-          # For loop 2:
-          # For each pair of donors 
-          # compute the wasserstein distance b/w 2 distributions
-                
           for (j_b in (j_a+1):nrow(meta_ind)) {
             res_b = res_ig[[j_b]]
             
@@ -189,7 +207,8 @@ ideas_dist_custom <-
         }
         dist_array1
       }
-    
+        
+
    
     # -----------------------------------------------------------------
     # TZ:
