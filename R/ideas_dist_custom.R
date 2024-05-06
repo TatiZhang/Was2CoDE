@@ -172,22 +172,6 @@ ideas_dist_custom <-
           diag(dist_array1[,,k]) <- 0
         }
  
-        # define divergence() using wasserstein1d()
-        divergence <- function(a, b, p = 2, wa = NULL, wb = NULL) {
-          distance = transport::wasserstein1d(a, b, p = p, wa = wa, wb = wb)
-          result = c(
-            distance = distance,
-            location = (mean(a) - mean(b))^2,
-            location_sign = mean(a) - mean(b),
-            size = (sd(a) - sd(b))^2,
-            size_sign = sd(a) - sd(b),
-            shape = (distance^2 - location - size) / (2 * sd(a) * sd(b))
-          )
-          if (length(result) != 6) {
-            stop("Result vector from divergence has incorrect length")
-          }
-          return(result)
-        }
         # For loop 2:
         # For each pair of donors 
         # compute the wasserstein distance b/w 2 distributions
@@ -202,7 +186,7 @@ ideas_dist_custom <-
               error = function(e) { NA }
             )
             
-            dist_array1[j_b, j_a] = dist_array1[j_a, j_b]
+            dist_array1[j_b, j_a,] = dist_array1[j_a, j_b,]
           }
         }
         dist_array1
@@ -219,11 +203,13 @@ ideas_dist_custom <-
    
     length(dist_array_list)
     dim(dist_array_list[[1]])
-    dist_array_list[[1]][1:2,1:2]
+    dist_array_list[[1]][,1:2,1:2]
     
+    # Calculating the number of NA values in each element of dist_array_list
     nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
     table(nNA)
     
+    # Initializing a list of arrays to store results for each metric ("distance", "location", etc.)
     result_array_list = lapply(1:6, function(kk){
       array(
         dim = c(
@@ -242,7 +228,8 @@ ideas_dist_custom <-
                                   "shape")
     for(kk in 1:6){
       for (i in 1:n_gene){
-        result_array_list[[kk]][i,,] = dist_array_list[[i]]
+        
+        result_array_list[[kk]][i,,] = dist_array_list[[i]][kk,,]
       }
     }
     
