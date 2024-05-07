@@ -161,49 +161,49 @@ ideas_dist_custom <-
       res_ig  #output the residual(*) and intercept
   }
       
-      dist_array_list=foreach (i_g = 1:n_gene) %dorng% {
-        
-        res_ig = dat_res[[i_g]]
-        dist_array1 = array(NA, dim = c(rep(nrow(meta_ind), 2), 6))
-        rownames(dist_array1) = meta_ind$individual
-        colnames(dist_array1) = meta_ind$individual
-        # Set diagonal elements for each matrix in the 3D array to 0
-        for (k in 1:6) {
-          diag(dist_array1[,,k]) <- 0
-        }
- 
-        # For loop 2:
-        # For each pair of donors 
-        # compute the wasserstein distance b/w 2 distributions
-        
-        for (j_a in 1:(nrow(meta_ind)-1)) {
-          res_a = res_ig[[j_a]]
-          for (j_b in (j_a+1):nrow(meta_ind)) {
-            res_b = res_ig[[j_b]]
-            
-            dist_array1[j_a, j_b,] = tryCatch(
-              divergence(res_a, res_b), #distance calculation 
-              error = function(e) { NA }
-            )
-            
-            dist_array1[j_b, j_a,] = dist_array1[j_a, j_b,]
-          }
-        }
-        dist_array1
-      }
-        
-
-   
-    # -----------------------------------------------------------------
-    # TZ:
-    # conclusion
-    # compiles the pairwise distances between individuals for each gene 
-    # into a 3-dimensional array (dist_array).  
-    # -----------------------------------------------------------------
-   
-    length(dist_array_list)
-    dim(dist_array_list[[1]])
-    dist_array_list[[1]][,1:2,1:2]
+    #   dist_array_list=foreach (i_g = 1:n_gene) %dorng% {
+    #     
+    #     res_ig = dat_res[[i_g]]
+    #     dist_array1 = array(NA, dim = c(rep(nrow(meta_ind), 2), 6))
+    #     rownames(dist_array1) = meta_ind$individual
+    #     colnames(dist_array1) = meta_ind$individual
+    #     # Set diagonal elements for each matrix in the 3D array to 0
+    #     for (k in 1:6) {
+    #       diag(dist_array1[,,k]) <- 0
+    #     }
+    # 
+    #     # For loop 2:
+    #     # For each pair of donors 
+    #     # compute the wasserstein distance b/w 2 distributions
+    #     
+    #     for (j_a in 1:(nrow(meta_ind)-1)) {
+    #       res_a = res_ig[[j_a]]
+    #       for (j_b in (j_a+1):nrow(meta_ind)) {
+    #         res_b = res_ig[[j_b]]
+    #         
+    #         dist_array1[j_a, j_b,] = tryCatch(
+    #           divergence(res_a, res_b), #distance calculation 
+    #           error = function(e) { NA }
+    #         )
+    #         
+    #         dist_array1[j_b, j_a,] = dist_array1[j_a, j_b,]
+    #       }
+    #     }
+    #     dist_array1
+    #   }
+    #     
+    # 
+    # 
+    # # -----------------------------------------------------------------
+    # # TZ:
+    # # conclusion
+    # # compiles the pairwise distances between individuals for each gene 
+    # # into a 3-dimensional array (dist_array).  
+    # # -----------------------------------------------------------------
+    # 
+    # length(dist_array_list)
+    # dim(dist_array_list[[1]])
+    # dist_array_list[[1]][,1:2,1:2]
     
     # Calculating the number of NA values in each element of dist_array_list
     nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
