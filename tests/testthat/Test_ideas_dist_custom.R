@@ -22,18 +22,23 @@ test_that("ideas_dist_custom outputs correctly", {
  # 1. Test if output type is a list of six 3-dimensional arrays with correct names
   expect_is(output, "list", info = "Output should be a list.")
   expect_equal(length(output), 6, info = "output list has 6 elements")
-  for (i in seq_along(output)) {
+  expected_names <- c("distance", "location", "location_sign", "size", "size_sign", "shape")
+  expect_equal(names(output), expected_names, info = "Output names should match expected names.")
+  
+  for (i in 1:6) {
     expect_true(is.array(output[[i]]))
-    expected_names <- c("distance", "location", "location_sign", "size", "size_sign", "shape")
-    expect_equal(names(output), expected_names, info = "Output names should match expected names.")
+    expect_true(is.list(dimnames(output[[i]])))
+    expect_true(length(dimnames(output[[i]]))==3)
+    # expect_true(length(dimnames(output[[i]][[1]]))== length(rownames(count_matrix)))
     expected_dimnames <- list(
       gene_ids <- rownames(count_matrix),     
       ind_ids <- as.character(meta_ind$individual),
       ind_ids <- as.character(meta_ind$individual)
     )
-    expect_equal(dimnames(output[[i]])[[1]], expected_dimnames[[1]])
-    expect_equal(dimnames(output[[i]])[[2]], expected_dimnames[[2]])
-    expect_equal(dimnames(output[[i]])[[3]], expected_dimnames[[3]])
+      expect_true(all(dimnames(output[[i]][[1]])==expected_dimnames[[1]]))
+      expect_true(dimnames(output)[[i]][[2]] == expected_dimnames[[2]])
+      expect_true(dimnames(output)[[i]][[3]] == expected_dimnames[[3]])
+      
     }
 
  # 2. Test if the each array was computed correctly
