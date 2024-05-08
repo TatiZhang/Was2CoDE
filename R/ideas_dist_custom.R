@@ -1,4 +1,7 @@
-#' Title
+#' Using the divergence function many many many times, 
+#' and putting the correct values into the empty 
+#' dist_array_list (list of arrays)
+#' and then reorganize it to result_array_list
 #'
 #' @param count_input 
 #' @param meta_cell 
@@ -137,104 +140,49 @@ ideas_dist_custom <-
     # -----------------------------------------------------------------
       
       message("estimating distribution for each gene and each individual by kde\n")
-      dat_res=foreach (i_g = 1:n_gene) %dorng% {
-        res_ig = list()
-        
-        # For loop 1:
-        # For each gene (i_g), the function iterates over each individual 
-        # in meta_ind, extracting the corresponding expression data 
-        # from the count matrix. 
-        # then applies a log transformation, 
-        # preprocessing to make the data more normally distributed.
-        # outputing the residuals that we want
+      dat_res <- arrange_genes_by_donors(count_matrix, 
+                                         meta_ind, 
+                                         meta_cell)
+      dist_array_list <-dist_array_list(dat_res)
       
-      # For each gene (i_g), iterate over each individual in meta_ind
-      for (j in 1:nrow(meta_ind)) {
-        ind_j = meta_ind$individual[j]  # donor's ID
-        w2use = which(meta_cell$individual == ind_j)  # grab all indexes associated with this donor
-        # Directly use the count matrix rows corresponding to this gene and columns for the donor
-        dat_j = count_matrix[i_g, w2use]
-        # Apply log transformation 
-        res_ig[[j]] = dat_j  #adjust constant based on data scale?
-      }
-      names(res_ig) = as.character(meta_ind$individual)
-      res_ig  #output the residual(*) and intercept
-  }
-      
-    #   dist_array_list=foreach (i_g = 1:n_gene) %dorng% {
-    #     
-    #     res_ig = dat_res[[i_g]]
-    #     dist_array1 = array(NA, dim = c(rep(nrow(meta_ind), 2), 6))
-    #     rownames(dist_array1) = meta_ind$individual
-    #     colnames(dist_array1) = meta_ind$individual
-    #     # Set diagonal elements for each matrix in the 3D array to 0
-    #     for (k in 1:6) {
-    #       diag(dist_array1[,,k]) <- 0
-    #     }
-    # 
-    #     # For loop 2:
-    #     # For each pair of donors 
-    #     # compute the wasserstein distance b/w 2 distributions
-    #     
-    #     for (j_a in 1:(nrow(meta_ind)-1)) {
-    #       res_a = res_ig[[j_a]]
-    #       for (j_b in (j_a+1):nrow(meta_ind)) {
-    #         res_b = res_ig[[j_b]]
-    #         
-    #         dist_array1[j_a, j_b,] = tryCatch(
-    #           divergence(res_a, res_b), #distance calculation 
-    #           error = function(e) { NA }
-    #         )
-    #         
-    #         dist_array1[j_b, j_a,] = dist_array1[j_a, j_b,]
-    #       }
-    #     }
-    #     dist_array1
-    #   }
-    #     
-    # 
-    # 
-    # # -----------------------------------------------------------------
-    # # TZ:
-    # # conclusion
-    # # compiles the pairwise distances between individuals for each gene 
-    # # into a 3-dimensional array (dist_array).  
-    # # -----------------------------------------------------------------
-    # 
-    # length(dist_array_list)
-    # dim(dist_array_list[[1]])
-    # dist_array_list[[1]][,1:2,1:2]
-    
+      for(i in 1:nrow(dist_array_list())){
+     
+        # Set diagonal elements for each matrix in the 3D array to 0
+        for (k in 1:6) {
+          diag(dist_array_list[[i]][,,k]) <- 0
+        # For loop:
+        # For each pair of donors
+        # compute the wasserstein distance b/w 2 distributions
+          for (j_a in 1:(nrow(meta_ind)-1)) {
+          res_a = res_ig[[j_a]]
+          for (j_b in (j_a+1):nrow(meta_ind)) {
+            res_b = res_ig[[j_b]]
+
+            dist_array_list[[i]][j_a, j_b,] = tryCatch(
+              divergence(res_a, res_b), #calculation
+              error = function(e) { NA }
+            )
+
+            dist_array[[i]][j_b, j_a,] = dist_array[[i]][j_a, j_b,]
+          }
+        }
+        dist_array[[i]]
+      }}
+
+
+
+    # -----------------------------------------------------------------
+    # TZ:
+    # conclusion
+    # compiles the pairwise distances between individuals for each gene
+    # into a 3-dimensional array (dist_array).
+    # -----------------------------------------------------------------
+
     # Calculating the number of NA values in each element of dist_array_list
     nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
     table(nNA)
     
-    # Initializing a list of arrays to store results for each metric ("distance", "location", etc.)
-    result_array_list = lapply(1:6, function(kk){
-      array(
-        dim = c(
-          n_gene,
-          nrow(meta_ind),
-          nrow(meta_ind)
-        ),
-        dimnames = list(gene_ids, meta_ind$individual, meta_ind$individual)
-      )
-    })
-    names(result_array_list) <- c("distance",
-                                  "location",
-                                  "location_sign",
-                                  "size",
-                                  "size_sign",
-                                  "shape")
-    for(kk in 1:6){
-      for (i in 1:n_gene){
-        
-        result_array_list[[kk]][i,,] = dist_array_list[[i]][kk,,]
-      }
-    }
-    
-    dim(result_array_list[[1]])
-    result_array_list[[1]][1,1:2,1:2]
-    
-    result_array_list
+    result_array_list <- result_array_list(dist_array_list, 
+                                           meta_ind)
+    return(result_array_list())
   }
