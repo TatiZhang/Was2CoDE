@@ -26,7 +26,7 @@ test_that("result_array_list outputs correctly", {
   results <- result_array_list(mock_dist_array_list, meta_ind)
   
   expect_true(is.list(results))
-  expect_length(results, 6)
+  expect_true(length(results) == 6)
   expected_names <- c("distance", "location", "location_sign", "size", "size_sign", "shape")
   expect_equal(names(results), expected_names)
   # Check each array's dimension and names

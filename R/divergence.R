@@ -1,7 +1,7 @@
 #' define divergence() using wasserstein1d()
 #'
-#' @param a Numeric vector.
-#' @param b Numeric vector.
+#' @param a Numeric (gene expressions) vector.
+#' @param b Numeric (gene expressions) vector.
 #' @param p Integer, power parameter for the Wasserstein distance.
 #'
 #' @return
