@@ -169,15 +169,6 @@ ideas_dist_custom <-
         dist_array_list[[i]]
       }}
 
-
-
-    # -----------------------------------------------------------------
-    # TZ:
-    # conclusion
-    # compiles the pairwise distances between individuals for each gene
-    # into a 3-dimensional array (dist_array).
-    # -----------------------------------------------------------------
-
     # Calculating the number of NA values in each element of dist_array_list
     nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
     table(nNA)
