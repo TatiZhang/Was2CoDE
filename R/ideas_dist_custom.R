@@ -143,9 +143,9 @@ ideas_dist_custom <-
       dat_res <- arrange_genes_by_donors(count_matrix, 
                                          meta_ind, 
                                          meta_cell)
-      dist_array_list <-dist_array_list(dat_res)
+      dist_array_list <- dist_array_list(dat_res)
       
-      for(i in 1:nrow(dist_array_list())){
+      for(i in 1:length(dist_array_list)){
      
         # Set diagonal elements for each matrix in the 3D array to 0
         for (k in 1:6) {
@@ -154,19 +154,19 @@ ideas_dist_custom <-
         # For each pair of donors
         # compute the wasserstein distance b/w 2 distributions
           for (j_a in 1:(nrow(meta_ind)-1)) {
-          res_a = res_ig[[j_a]]
+          res_a = dat_res[[i]][[j_a]]
           for (j_b in (j_a+1):nrow(meta_ind)) {
-            res_b = res_ig[[j_b]]
+            res_b = dat_res[[i]][[j_b]]
 
             dist_array_list[[i]][j_a, j_b,] = tryCatch(
               divergence(res_a, res_b), #calculation
               error = function(e) { NA }
             )
 
-            dist_array[[i]][j_b, j_a,] = dist_array[[i]][j_a, j_b,]
+            dist_array_list[[i]][j_b, j_a,] = dist_array_list[[i]][j_a, j_b,]
           }
         }
-        dist_array[[i]]
+        dist_array_list[[i]]
       }}
 
 
@@ -184,5 +184,5 @@ ideas_dist_custom <-
     
     result_array_list <- result_array_list(dist_array_list, 
                                            meta_ind)
-    return(result_array_list())
+    return(result_array_list)
   }
