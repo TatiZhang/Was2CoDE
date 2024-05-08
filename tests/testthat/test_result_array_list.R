@@ -24,6 +24,7 @@ test_that("result_array_list outputs correctly", {
   meta_ind <- data.frame(individual = individuals)
   rownames(meta_ind) <- individuals
   results <- result_array_list(mock_dist_array_list, meta_ind)
+  
   expect_true(is.list(results))
   expect_length(results, 6)
   expected_names <- c("distance", "location", "location_sign", "size", "size_sign", "shape")
@@ -31,7 +32,7 @@ test_that("result_array_list outputs correctly", {
   # Check each array's dimension and names
   for (result in results) {
     expect_equal(dim(result), c(n_gene, n_ind, n_ind))
-    expect_equal(dimnames(result)[[1]], gene_ids)
+    expect_true(all(dimnames(result)[[1]] == gene_ids))
     expect_equal(dimnames(result)[[2]], individuals)
     expect_equal(dimnames(result)[[3]], individuals)
   }
