@@ -30,15 +30,15 @@ test_that("ideas_dist_custom outputs correctly", {
     expect_true(is.list(dimnames(output[[i]])))
     expect_true(length(dimnames(output[[i]]))==3)
     # expect_true(length(dimnames(output[[i]][[1]]))== length(rownames(count_matrix)))
+    gene_ids <- rownames(count_matrix)
     expected_dimnames <- list(
-      gene_ids <- rownames(count_matrix),     
-      ind_ids <- as.character(meta_ind$individual),
-      ind_ids <- as.character(meta_ind$individual)
+      gene_ids ,     
+      meta_ind$individual ,
+      meta_ind$individual 
     )
-      expect_true(all(dimnames(output[[i]][[1]])==expected_dimnames[[1]]))
-      expect_true(dimnames(output)[[i]][[2]] == expected_dimnames[[2]])
-      expect_true(dimnames(output)[[i]][[3]] == expected_dimnames[[3]])
-      
+    for (kk in 1:3){
+      expect_true(dimnames(output)[[i]] == expected_dimnames[[kk]])
+  }
     }
 
  # 2. Test if the each array was computed correctly
