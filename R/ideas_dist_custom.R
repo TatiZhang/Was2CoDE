@@ -59,15 +59,7 @@ ideas_dist_custom <-
         stop("count_matrix is not a matrix\n")
       }
       
-        check_count <- function(v){any(v != round(v) | v < 0)}
-        not_count = apply(count_matrix, 1, check_count)
         
-        if(any(not_count)){
-          str1 = "count_matrix should only include non-negative integers"
-          str1 = sprintf("%s, violation in row %d\n", str1, which(not_count)[1])
-          stop(str1)
-        }
-      
       
       n_cell = ncol(count_matrix)
       n_gene = nrow(count_matrix)
