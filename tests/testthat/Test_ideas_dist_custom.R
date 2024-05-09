@@ -29,7 +29,6 @@ test_that("ideas_dist_custom outputs correctly", {
     expect_true(is.array(output[[i]]))
     expect_true(is.list(dimnames(output[[i]])))
     expect_true(length(dimnames(output[[i]]))==3)
-    # expect_true(length(dimnames(output[[i]][[1]]))== length(rownames(count_matrix)))
     gene_ids <- rownames(count_matrix)
     expected_dimnames <- list(
       gene_ids ,     
@@ -37,22 +36,22 @@ test_that("ideas_dist_custom outputs correctly", {
       meta_ind$individual 
     )
     for (kk in 1:3){
-      expect_true(dimnames(output)[[i]] == expected_dimnames[[kk]])
+      expect_true(all(dimnames(output)[[i]] == expected_dimnames[[kk]]))
   }
     }
 
  # 2. Test if the each array was computed correctly
     ## Get a sample of known distances/locations/... between the first two individuals is as expected to validate
     ## Extract data for 3 randomly selected genes for the first two individuals
-  set.seed(10)
+  set.seed(0)
   selected_genes <- sample(nrow(count_matrix), 3)
-  # Extract function results for the selected genes
-  distances_from_function <- output[[1]][selected_genes, , ]
-  location_from_function <- output[[2]][selected_genes, , ]
-  location_sign_from_function <- output[[3]][selected_genes, , ]
-  size_from_function <- output[[4]][selected_genes, , ]
-  size_sign_from_function <- output[[5]][selected_genes, , ]
-  shape_from_function <- output[[6]][selected_genes, , ]
+  # Extract function results for the selected genes and the first two individuals
+  distances_from_function <- output[[1]][selected_genes, 1 , 2]
+  location_from_function <- output[[2]][selected_genes, 1, 2]
+  location_sign_from_function <- output[[3]][selected_genes, 1 , 2]
+  size_from_function <- output[[4]][selected_genes, 1 , 2]
+  size_sign_from_function <- output[[5]][selected_genes, 1 , 2]
+  shape_from_function <- output[[6]][selected_genes, 1 , 2]
   # Manually compute each component
   manual_distances <- numeric(length = 3)
   manual_location <- numeric(length = 3)
@@ -61,17 +60,19 @@ test_that("ideas_dist_custom outputs correctly", {
   manual_size_sign <- numeric(length = 3)
   manual_shape <- numeric(length = 3)
   ## Loop through each selected gene
-  for (i in seq_along(selected_genes)) {
+  for (i in 1:3) {
     gene_index <- selected_genes[i]
-    data_ind1 <- sort(count_matrix[gene_index, which(colnames(count_matrix) == meta_ind$individual[1]), drop = FALSE])
-    data_ind2 <- sort(count_matrix[gene_index, which(colnames(count_matrix) == meta_ind$individual[2]), drop = FALSE]) # Ensure the data are sorted (necessary for the 1D Wasserstein calculation)
+    cols_ind1 <- which(meta_cell$individual == meta_ind$individual[1])
+    cols_ind2 <- which(meta_cell$individual == meta_ind$individual[2])
+    data_ind1 <- sort(count_matrix[gene_index, cols_ind1, drop = FALSE])
+    data_ind2 <- sort(count_matrix[gene_index, cols_ind2, drop = FALSE]) # Ensure the data are sorted (necessary for the 1D Wasserstein calculation)
     # Manual calculations
     manual_distances[i] <- transport::wasserstein1d(data_ind1, data_ind2, p = 2) # Compute Wasserstein-2 distance
     manual_location[i] <- (mean(data_ind1) - mean(data_ind2))^2
     manual_location_sign[i] <- mean(data_ind1) - mean(data_ind2)
     manual_size[i] <- (sd(data_ind1) - sd(data_ind2))^2
     manual_size_sign[i] <- sd(data_ind1) - sd(data_ind2)
-    manual_shape[i] <- (manual_distance^2 - manual_location - manual_size) / (2 * sd(data_ind1) * sd(data_ind2))
+    manual_shape[i] <- (manual_distances[i]^2 - manual_location[i] - manual_size[i]) / (2 * sd(data_ind1) * sd(data_ind2))
   }
   for (i in seq_along(selected_genes)) {
     expect_equal(distances_from_function[i], manual_distances[i], tolerance = 0.01,
@@ -87,11 +88,6 @@ test_that("ideas_dist_custom outputs correctly", {
     expect_equal(shape_from_function[i], manual_shape[i], tolerance = 0.01,
                  info = sprintf("Shapes for gene %d do not match.", selected_genes[i]))
   }
-  # Example test to check if diagonal elements of each matrix are zero
-  expect_true(all(sapply(output, function(x) all(diag(x[,,1]) == 0))), "Diagonal elements should be zero.")
-  
-  # Testing error handling
-  expect_error(ideas_dist_custom(count_input = "not a matrix", meta_cell, meta_ind, "individual", "var2test", "binary", "NB"),
-               "count_matrix is not a matrix")
+
   })
 

@@ -11,9 +11,6 @@ divergence <- function(a, b, p=2) {
   if (!is.numeric(a) || !is.numeric(b)) {
     stop("Both 'a' and 'b' must be numeric vectors.")
   }
-  if (length(a) != length(b)) {
-    stop("'a' and 'b' must be of the same length.")
-  }
   distance <- transport::wasserstein1d(a, b, p, wa = NULL, wb = NULL)
   location <- (mean(a) - mean(b))^2
   location_sign <- mean(a) - mean(b)
