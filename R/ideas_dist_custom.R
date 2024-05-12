@@ -9,7 +9,6 @@
 #' @param var_per_cell 
 #' @param var2test 
 #' @param var2test_type 
-#' @param per_cell_adjust 
 #'
 #' @return
 #' @export
@@ -17,7 +16,7 @@ ideas_dist_custom <-
   function(count_input, # the input should be "genes" by "cells"
            meta_cell, meta_ind, var_per_cell, var2test, 
            var2test_type = c("binary", "continuous"), 
-           per_cell_adjust = c("NB", "both")) { 
+           verbose = 0) { 
     # -----------------------------------------------------------------
     # TZ:
     # initializes the var2test_type, validates the structure and content of 
@@ -137,8 +136,13 @@ ideas_dist_custom <-
                                          meta_cell)
       dist_array_list <- dist_array_list(dat_res)
       
+      if(verbose > 0) print("Analyzing genes")
+      
       for(i in 1:length(dist_array_list)){
-     
+        if(verbose > 1 && length(dist_array_list) > 10 && i %% 
+           floor(length(dist_array_list) /10) == 0) cat('*')
+        if(verbose > 2) print(paste("Gene: ", names(dat_res)[i]))
+        
         # Set diagonal elements for each matrix in the 3D array to 0
         for (k in 1:6) {
           diag(dist_array_list[[i]][,,k]) <- 0
@@ -163,7 +167,9 @@ ideas_dist_custom <-
 
     # Calculating the number of NA values in each element of dist_array_list
     nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
-    table(nNA)
+    # table(nNA)
+    
+    if(verbose > 0) print("Finalizing output")
     
     result_array_list <- result_array_list(dist_array_list, 
                                            meta_ind)
