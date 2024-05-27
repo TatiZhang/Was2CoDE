@@ -1,9 +1,11 @@
-#' Title
+#' Generate Result Array List
 #'
 #' @param dist_array_list 
 #' @param meta_ind 
 #'
-#' @return
+#' @return A list of 3-dimensional arrays, one for each metric (distance, location, location_sign, size, size_sign, shape).
+#' Each array has dimensions (number of genes, number of donors, number of donors) and contains the respective metric values.
+#'
 #' @export
 #'
 #' @examples

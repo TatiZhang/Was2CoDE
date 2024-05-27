@@ -1,3 +1,4 @@
+#' Compute Wasserstein-2 decomposition for Gene Expression Data
 #' Using the divergence function many many many times, 
 #' and putting the correct values into the empty 
 #' dist_array_list (list of arrays)
@@ -10,7 +11,9 @@
 #' @param var2test 
 #' @param var2test_type 
 #'
-#' @return
+#' @return A list of 3-dimensional arrays, each corresponding to a distance metric (distance, location, location_sign, size, size_sign, shape).
+#' Each array has dimensions (number of genes, number of donors, number of donors) and contains the respective metric values.
+#'
 #' @export
 ideas_dist_custom <-
   function(count_input, # the input should be "genes" by "cells"

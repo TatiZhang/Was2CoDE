@@ -4,7 +4,8 @@
 #' @param b Numeric (gene expressions) vector.
 #' @param p Integer, power parameter for the Wasserstein distance.
 #'
-#' @return
+#' @return A numeric vector containing six divergence metrics: distance, location difference, 
+#' location sign, size difference, size sign, and shape difference.
 #' @export
 #'
 divergence <- function(a, b, p=2) {

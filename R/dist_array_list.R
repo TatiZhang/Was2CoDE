@@ -2,7 +2,9 @@
 #'
 #' @param dat_res 
 #'
-#' @return
+#' @return an empty (initialized with NAs) of p lists (for p genes), 
+#' each having an array of dimension“n donors” by “n donors” by 6
+
 #' @export
 dist_array_list <- function(dat_res) {
   p <- length(dat_res) # number of genes
