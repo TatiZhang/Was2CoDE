@@ -1,10 +1,17 @@
-#' Title
+#' Arrange Genes by Donors
 #'
+#' This function arranges gene expression data by donors, 
+#' reformatting the count matrix genes and donors. 
+#' For each gene in the count matrix, it iterates over 
+#' each individual in the metadata and extracts the corresponding expression
+#' data, organizing it by donors.
+#' 
+#' 
 #' @param count_matrix 
 #' @param meta_ind 
 #' @param meta_cell 
 #'
-#' @return
+#' @return dat_res, which is a list (of genes) of lists (of donors)
 #' @export
 arrange_genes_by_donors <- function(count_matrix, meta_ind, meta_cell) {
   n_gene = nrow(count_matrix)
