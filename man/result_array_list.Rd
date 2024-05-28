@@ -2,7 +2,7 @@
 % Please edit documentation in R/result_array_list.R
 \name{result_array_list}
 \alias{result_array_list}
-\title{Title}
+\title{Generate Result Array List}
 \usage{
 result_array_list(dist_array_list, meta_ind)
 }
@@ -11,6 +11,10 @@ result_array_list(dist_array_list, meta_ind)
 
 \item{meta_ind}{}
 }
+\value{
+A list of 3-dimensional arrays, one for each metric (distance, location, location_sign, size, size_sign, shape).
+Each array has dimensions (number of genes, number of donors, number of donors) and contains the respective metric values.
+}
 \description{
-Title
+Generate Result Array List
 }

@@ -9,6 +9,10 @@ dist_array_list(dat_res)
 \arguments{
 \item{dat_res}{}
 }
+\value{
+an empty (initialized with NAs) of p lists (for p genes),
+each having an array of dimension“n donors” by “n donors” by 6
+}
 \description{
 To initialize a list of arrays, dist_array_list
 }

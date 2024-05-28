@@ -2,7 +2,8 @@
 % Please edit documentation in R/ideas_dist_custom.R
 \name{ideas_dist_custom}
 \alias{ideas_dist_custom}
-\title{Using the divergence function many many many times,
+\title{Compute Wasserstein-2 decomposition for Gene Expression Data
+Using the divergence function many many many times,
 and putting the correct values into the empty
 dist_array_list (list of arrays)
 and then reorganize it to result_array_list}
@@ -14,7 +15,7 @@ ideas_dist_custom(
   var_per_cell,
   var2test,
   var2test_type = c("binary", "continuous"),
-  per_cell_adjust = c("NB", "both")
+  verbose = 0
 )
 }
 \arguments{
@@ -29,10 +30,13 @@ ideas_dist_custom(
 \item{var2test}{}
 
 \item{var2test_type}{}
-
-\item{per_cell_adjust}{}
+}
+\value{
+A list of 3-dimensional arrays, each corresponding to a distance metric (distance, location, location_sign, size, size_sign, shape).
+Each array has dimensions (number of genes, number of donors, number of donors) and contains the respective metric values.
 }
 \description{
+Compute Wasserstein-2 decomposition for Gene Expression Data
 Using the divergence function many many many times,
 and putting the correct values into the empty
 dist_array_list (list of arrays)

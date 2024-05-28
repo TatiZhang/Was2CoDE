@@ -2,7 +2,7 @@
 % Please edit documentation in R/arrange_genes_by_donors.R
 \name{arrange_genes_by_donors}
 \alias{arrange_genes_by_donors}
-\title{Title}
+\title{Arrange Genes by Donors}
 \usage{
 arrange_genes_by_donors(count_matrix, meta_ind, meta_cell)
 }
@@ -13,6 +13,13 @@ arrange_genes_by_donors(count_matrix, meta_ind, meta_cell)
 
 \item{meta_cell}{}
 }
+\value{
+dat_res, which is a list (of genes) of lists (of donors)
+}
 \description{
-Title
+This function arranges gene expression data by donors,
+reformatting the count matrix genes and donors.
+For each gene in the count matrix, it iterates over
+each individual in the metadata and extracts the corresponding expression
+data, organizing it by donors.
 }

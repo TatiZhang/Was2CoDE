@@ -1,4 +1,7 @@
 # IdeasCustom
+The URL to the GitHub (i.e., the source code) is: 
+https://github.com/TatiZhang/IdeasCustom
+The URL to the Pkgdown webpage is: 
 
 ## Purpose
 
