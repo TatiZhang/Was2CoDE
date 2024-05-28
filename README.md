@@ -3,7 +3,7 @@ The URL to the GitHub (i.e., the source code) is:
 https://github.com/TatiZhang/IdeasCustom
 
 The URL to the Pkgdown webpage is: 
-https://tatizhang.github.io/IdeasCustom/articles/IdeasCustom.html
+https://tatizhang.github.io/IdeasCustom/index.html
 
 ## Purpose
 
@@ -136,3 +136,4 @@ devtools::install_github("TatiZhang/IdeasCustom")
    yaml           2.3.8      2023-12-11 [1] CRAN (R 4.3.0)
 
  [1] /Library/Frameworks/R.framework/Versions/4.3-x86_64/Resources/library
+ ```
