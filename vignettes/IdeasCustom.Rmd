@@ -18,6 +18,8 @@ First, ensure that you have installed the IdeasCustom package from GitHub:
 ```{r}
 # Install devtools if you haven't already
 install.packages("devtools")
+install.packages("data.table")
+install.packages("doRNG")
 
 # Install IdeasCustom from GitHub
 devtools::install_github("TatiZhang/IdeasCustom")
