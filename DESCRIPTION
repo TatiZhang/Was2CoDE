@@ -4,15 +4,7 @@ Version: 0.0.0.9002
 Authors@R: 
     person("Tati", "Zhang", , "Wenjiz1@uw.edu", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: The IdeasCustom package provides a tool for analyzing gene 
-expression data on individual-level using IDEAS mehtod 
-and decomposed components of Wasserstein-2 distance. It 
-includes functions to arrange gene expression data by donors, 
-initialize distance array lists, compute divergence metrics 
-using the Wasserstein distance, and more. This package is 
-designed to facilitate the exploration and analysis of 
-complex gene expression datasets.
-
+Description: The IdeasCustom package provides a tool for analyzing gene expression data on individual-level using IDEAS mehtod and decomposed components of Wasserstein-2 distance. It includes functions to arrange gene expression data by donors, initialize distance array lists, compute divergence metrics using the Wasserstein distance, and more. This package is designed to facilitate the exploration and analysis of complex gene expression datasets.
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Imports: 

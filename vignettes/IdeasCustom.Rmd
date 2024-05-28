@@ -1,0 +1,64 @@
+---
+title: "Getting Started with IdeasCustom"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with IdeasCustom}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Getting Started with IdeasCustom
+
+The IdeasCustom package provides a tool for analyzing gene expression data on individual-level using IDEAS mehtod and decomposed components of Wasserstein-2 distance. This vignette demonstrates how to use the package functions to analyze synthetic gene expression data.
+
+## Installation
+
+First, ensure that you have installed the IdeasCustom package from GitHub:
+
+```{r}
+# Install devtools if you haven't already
+install.packages("devtools")
+
+# Install IdeasCustom from GitHub
+devtools::install_github("TatiZhang/IdeasCustom")
+```
+
+## Load the package
+
+```{r}
+# Load the package
+library(IdeasCustom)
+```
+
+## Generate Synthetic Data
+```{r}
+set.seed(123)
+
+# Number of genes and cells
+n_genes <- 10
+n_cells <- 20
+
+# Generate synthetic gene expression data
+count_input <- matrix(rnorm(n_genes * n_cells, mean = 5, sd = 2), nrow = n_genes, ncol = n_cells)
+rownames(count_input) <- paste0("gene", 1:n_genes)
+colnames(count_input) <- paste0("cell", 1:n_cells)
+
+# Generate metadata for cells
+meta_cell <- data.frame(
+  cell_id = colnames(count_input),
+  individual = rep(paste0("donor", 1:5), each = n_cells / 5)
+)
+
+# Generate metadata for individuals
+meta_ind <- data.frame(
+  individual = unique(meta_cell$individual),
+  var2test = rnorm(5)
+)
+
+var_per_cell <- "some_variable"
+var2test <- "var2test"
+
+```
+
+
+
