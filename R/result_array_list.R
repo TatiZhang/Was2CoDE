@@ -8,7 +8,6 @@
 #'
 #' @export
 #'
-#' @examples
 result_array_list <- function(dist_array_list, meta_ind) {
   # n_gene, meta_ind, and gene_ids are passed to the function
   n_gene <- length(dist_array_list)

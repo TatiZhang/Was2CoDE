@@ -54,11 +54,17 @@ test_that("ideas_dist_custom outputs correctly", {
   shape_from_function <- output[[6]][selected_genes, 1 , 2]
   # Manually compute each component
   manual_distances <- numeric(length = 3)
+  names(manual_distances) <- gene_ids[selected_genes]
   manual_location <- numeric(length = 3)
+  names(manual_location) <- gene_ids[selected_genes]
   manual_location_sign <- numeric(length = 3)
+  names(manual_location_sign) <- gene_ids[selected_genes]
   manual_size <- numeric(length = 3)
+  names(manual_size) <- gene_ids[selected_genes]
   manual_size_sign <- numeric(length = 3)
+  names(manual_size_sign) <- gene_ids[selected_genes]
   manual_shape <- numeric(length = 3)
+  names(manual_shape) <- gene_ids[selected_genes]
   ## Loop through each selected gene
   for (i in 1:3) {
     gene_index <- selected_genes[i]
