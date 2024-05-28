@@ -26,13 +26,15 @@ devtools::install_github("TatiZhang/IdeasCustom")
 ## Load the package
 
 ```{r}
-# Load the package
+# Load the packages
 library(IdeasCustom)
+library(data.table)
+library(doRNG)
 ```
 
 ## Generate Synthetic Data
 ```{r}
-set.seed(123)
+set.seed(0)
 
 # Number of genes and cells
 n_genes <- 10
@@ -46,7 +48,8 @@ colnames(count_input) <- paste0("cell", 1:n_cells)
 # Generate metadata for cells
 meta_cell <- data.frame(
   cell_id = colnames(count_input),
-  individual = rep(paste0("donor", 1:5), each = n_cells / 5)
+  individual = rep(paste0("donor", 1:5), each = n_cells / 5),
+  some_variable = rnorm(n_cells)  # Add a placeholder variable for var_per_cell
 )
 
 # Generate metadata for individuals
@@ -60,5 +63,14 @@ var2test <- "var2test"
 
 ```
 
+## Analyze Gene Expression Data
+```{r}
+# Compute distance metrics
+result <- ideas_dist_custom(count_input, meta_cell, meta_ind, var_per_cell, var2test)
+
+# Print the result
+print(result)
+
+```
 
 
