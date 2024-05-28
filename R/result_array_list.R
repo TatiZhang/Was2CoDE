@@ -12,7 +12,7 @@
 result_array_list <- function(dist_array_list, meta_ind) {
   # n_gene, meta_ind, and gene_ids are passed to the function
   n_gene <- length(dist_array_list)
-  gene_ids <- dimnames(dist_array_list)[[1]]
+  gene_ids <- names(dist_array_list)
   
   n_ind <- nrow(meta_ind)  
   result_array_list <- lapply(1:6, function(kk) {
@@ -34,7 +34,6 @@ result_array_list <- function(dist_array_list, meta_ind) {
       dimnames(result_array_list[[kk]]) = list(gene_ids, 
                                               meta_ind$individual, 
                                               meta_ind$individual)
-      
     }
   }
 

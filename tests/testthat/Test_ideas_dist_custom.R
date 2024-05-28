@@ -25,10 +25,11 @@ test_that("ideas_dist_custom outputs correctly", {
   expect_equal(names(output), expected_names, info = "Output names should match expected names.")
   
   for (i in 1:6) {
+    gene_ids <- rownames(count_matrix)
     expect_true(is.array(output[[i]]))
     expect_true(is.list(dimnames(output[[i]])))
     expect_true(length(dimnames(output[[i]]))==3)
-    gene_ids <- rownames(count_matrix)
+    expect_true(length(dimnames(output[[i]])[[1]])==length(gene_ids))
     expected_dimnames <- list(
       gene_ids ,     
       meta_ind$individual ,
