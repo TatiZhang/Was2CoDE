@@ -78,8 +78,13 @@ test_that("ideas_dist_custom outputs correctly", {
     manual_location_sign[i] <- mean(data_ind1) - mean(data_ind2)
     manual_size[i] <- (sd(data_ind1) - sd(data_ind2))^2
     manual_size_sign[i] <- sd(data_ind1) - sd(data_ind2)
-    manual_shape[i] <- (manual_distances[i]^2 - manual_location[i] - manual_size[i]) / (2 * sd(data_ind1) * sd(data_ind2))
+    quantiles <- seq(0, 1, length.out = 100)
+    quantiles_1 <- quantile(data_ind1, probs = quantiles)
+    quantiles_2 <- quantile(data_ind2, probs = quantiles)
+    quantile_cor_ind1_ind2 <- cor(quantiles_1, quantiles_2)
+    manual_shape[i] <- abs(2 * sd(data_ind1) * sd(data_ind2) * (1 - quantile_cor_ind1_ind2))
   }
+  
   for (i in seq_along(selected_genes)) {
     expect_equal(distances_from_function[i], manual_distances[i], tolerance = 0.01,
                  info = sprintf("Distances for gene %d do not match.", selected_genes[i]))
