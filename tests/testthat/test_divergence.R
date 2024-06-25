@@ -4,8 +4,9 @@ library(transport)
 library(Rcpp) 
 
 test_that("divergence function calculates correct values", {
-  a <- c(1, 2, 3, 4, 5)
-  b <- c(1, 4, 3, 2, 1)
+  set.seed(0)
+  a <- rnorm(1000,mean=0,sd=1)
+  b <- rnorm(1000,mean=2,sd=1)
   
   result <- divergence(a, b)
   
@@ -45,10 +46,10 @@ test_that("divergence function handles incorrect input types", {
 
 test_that("manual shape calculation is correct", {
   set.seed(0)
-  a <- rnorm(100,mean=0,sd=1)
-  b <- rnorm(100,mean=2,sd=1)
+  a <- rnorm(1000,mean=0,sd=1)
+  b <- rnorm(1000,mean=2,sd=1)
   
-  quantiles <- seq(0.1, 0.9, by = 0.1)
+  quantiles <- seq(0, 1, length.out = 100)
   quantiles_a <- quantile(a, probs = quantiles)
   quantiles_b <- quantile(b, probs = quantiles)
   quantile_cor_ab <- cor(quantiles_a, quantiles_b)
@@ -69,6 +70,5 @@ test_that("manual shape calculation is correct", {
 
   
   result <- divergence(a, b)
-  
   expect_true(abs(result[6]-shape_manual)<1e-2)
 })
