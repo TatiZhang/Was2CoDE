@@ -111,7 +111,7 @@
 #'   \item{cluster}{The microglia cluster that the DEG analysis was performed on}
 #'   \item{DEG}{Internal criteria to deem a gene as DEG when looking at microglia as a whole}
 #' }
-#' @source <https://www.sciencedirect.com/science/article/pii/S0092867423009716>
+#' @source <https://www.nature.com/articles/s43587-023-00424-y>
 #' @examples
 #' \dontrun{
 #' # How the data was loaded
