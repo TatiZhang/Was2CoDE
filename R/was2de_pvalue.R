@@ -1,13 +1,13 @@
-#' Perform Wilcoxon tests on metrics for CognitiveStatus groups
+#' Perform Wilcoxon tests on metrics for Var groups
 #'
 #' @param dist_list List of distance matrices
 #' @param meta_ind Data frame containing metadata information for individuals
-#'
+#' @param Var dependent variable used for wilcoxon test
 #' @return A matrix with rows representing genes and columns representing means of distance metrics for different groups and p-values
 #' @export
 #'
 
-was2de_pvalue <- function(dist_list, meta_ind,
+was2de_pvalue <- function(dist_list, meta_ind, Var,
                           verbose = 0) {
   # Extract gene names from the first distance matrix
   gene_names <- dimnames(dist_list[[1]])[[1]]
@@ -18,8 +18,8 @@ was2de_pvalue <- function(dist_list, meta_ind,
   rownames(results_mat) <- gene_names
   
   # Extract cognitive status information
-  CognitiveStatus <- as.character(meta_ind$CognitiveStatus)
-  names(CognitiveStatus) <- meta_ind$individual
+  Var <- as.character(meta_ind$Var)
+  names(Var) <- meta_ind$individual
   
   # Loop through the distance matrices and categorize the pairs
   for (k in "distance") {
@@ -39,8 +39,8 @@ was2de_pvalue <- function(dist_list, meta_ind,
         for (j in (i + 1):length(ind_names)) {
           ind_i <- ind_names[i]
           ind_j <- ind_names[j]
-          status_i <- CognitiveStatus[ind_i]
-          status_j <- CognitiveStatus[ind_j]
+          status_i <- Var[ind_i]
+          status_j <- Var[ind_j]
           
           if (!is.na(status_i) & !is.na(status_j)) {
             metric <- dist_list[[k]][kk, i, j]
