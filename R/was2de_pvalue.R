@@ -1,4 +1,4 @@
-#' Perform Wilcoxon tests on distance metrics for CognitiveStatus groups
+#' Perform Wilcoxon tests on metrics for CognitiveStatus groups
 #'
 #' @param dist_list List of distance matrices
 #' @param meta_ind Data frame containing metadata information for individuals
