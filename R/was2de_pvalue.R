@@ -17,8 +17,9 @@ was2de_pvalue <- function(dist_list, meta_ind, Var,
   colnames(results_mat) <- c("mean_dd", "mean_nn", "mean_dn", "p_val")
   rownames(results_mat) <- gene_names
   
-  # Extract cognitive status information
-  Var <- as.character(meta_ind$Var)
+  # Extract Var information
+  Var <- as.character(meta_ind[[Var]])
+  
   names(Var) <- meta_ind$individual
   
   # Loop through the distance matrices and categorize the pairs
