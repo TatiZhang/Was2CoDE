@@ -1,10 +1,9 @@
 pandoc: 3.1.11
-pkgdown: 2.0.9
+pkgdown: 2.1.0
 pkgdown_sha: ~
 articles:
   IdeasCustom: IdeasCustom.html
-last_built: 2024-07-06T01:07Z
+last_built: 2024-08-23T21:22Z
 urls:
   reference: https://tatizhang.github.io/IdeasCustom/reference
   article: https://tatizhang.github.io/IdeasCustom/articles
-
