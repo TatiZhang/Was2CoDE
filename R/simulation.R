@@ -1,5 +1,9 @@
 rm(list=ls())
 set.seed(10)
+library(SeuratObject)
+library(Seurat)
+library(IdeasCustom)
+library(devtools)
 
 n <- 10
 
@@ -38,22 +42,72 @@ control_gaussian_list <- lapply(1:n, function(i) {
   cbind(xseq, yseq)  # Return x and y values as a matrix
 })
 
-n_cases <- 10
-n_controls <- 10
-cells_per_donor <- 200
-mean_case <- 2    
-sd_case <- 1 
-mean_control <- 0  
-sd_control <- 1 
+############################################
+# ---- Simulate data (same as before) ----
+n <- 10
+set.seed(10)
 
-sim_data <- data.frame(
-  donor_id = rep(1:(n_cases + n_controls), each = cells_per_donor),
-  pathology = rep(c(rep("case", n_cases), rep("control", n_controls)), each = cells_per_donor),
-  cell_id = 1:(cells_per_donor * (n_cases + n_controls)),
-  value = c(
-    rnorm(n_cases * cells_per_donor, mean = mean_case, sd = sd_case), 
-    rnorm(n_controls * cells_per_donor, mean = mean_control, sd = sd_control)
-  )
+# Generate the case and control vectors
+case_mean_vec <- 2 + runif(n, min = -0.5, 0.5)
+case_sd_vec <- rep(1, n)
+control_mean_vec <- 0 + runif(n, min = -0.5, 0.5)
+control_sd_vec <- rep(1, n)
+
+# Create meta information for individuals and cells
+meta_ind <- data.frame(
+  individual = 1:(2*n),
+  ADNC = rep(c(1, 0), each = n)  # Binary variable for case/control status (1 = case, 0 = control)
 )
 
-head(sim_data)
+# Simulate count matrix (Gaussian distributed data as placeholder for RNA counts)
+count_matrix <- matrix(rnorm(200 * (2 * n), mean = c(rep(case_mean_vec, each = 200), 
+                                                     rep(control_mean_vec, each = 200)),
+                             sd = 1), 
+                       nrow = 200 * (2 * n))
+
+# Simulate metadata for cells
+meta_cell <- data.frame(
+  individual = rep(1:(2 * n), each = 200),
+  donor_id = rep(1:(2 * n), each = 200),
+  nCount_RNA = rowSums(count_matrix)  # Cell-specific variable based on sum of counts
+)
+
+# Simulate Seurat object for demonstration
+seurat_obj <- CreateSeuratObject(counts = t(count_matrix))
+seurat_obj$donor_id <- meta_cell$donor_id
+seurat_obj$ADNC <- rep(c(1, 0), each = n)
+
+# Extract the count matrix and metadata
+count_matrix <- SeuratObject::LayerData(seurat_obj, features = Seurat::VariableFeatures(seurat_obj), layer = "data", assay = "RNA")
+
+meta_cell$cell_id <- row.names(meta_cell)
+
+meta_ind <- unique(data.frame(
+  "individual" = seurat_obj$donor_id,
+  "ADNC" = seurat_obj$ADNC,
+  row.names = NULL
+))
+
+# Handle missing data (not applicable in this simulation but included for consistency)
+for(j in 1:ncol(meta_ind)){
+  if(!is.numeric(meta_ind[,j])) next()
+  meta_ind[which(is.na(meta_ind[,j])), j] <- stats::median(meta_ind[,j], na.rm = TRUE)
+}
+
+# Variables for testing
+var2test <- "ADNC"
+var2adjust <- setdiff(colnames(meta_ind), c("individual", "ADNC"))
+var2test_type <- "binary"  # ADNC is a binary variable
+var_per_cell <- "nCount_RNA"  # Per cell variable
+
+# ---- Apply was2 method (IDEAS) ----
+dist_list <- IdeasCustom::ideas_dist_custom(
+  count_input = count_matrix, 
+  meta_cell = meta_cell, 
+  meta_ind = meta_ind, 
+  var_per_cell = var_per_cell, 
+  var2test = var2test, 
+  var2test_type = var2test_type, 
+  verbose = 3
+)
+
