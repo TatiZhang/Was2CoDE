@@ -99,7 +99,7 @@
 <span class="r-in"><span><span class="va">table_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">microglia_sun_df</span><span class="op">$</span><span class="va">Gene</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">enriched_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">table_vec</span><span class="op">)</span><span class="op">[</span><span class="va">table_vec</span> <span class="op">&gt;=</span> <span class="fl">5</span><span class="op">]</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">microglia_sun_df</span><span class="op">$</span><span class="va">DEG</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">microglia_sun_df</span><span class="op">$</span><span class="va">Gene</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">enriched_genes</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">usethis</span><span class="fu">::</span><span class="fu"><a href="https://usethis.r-lib.org/reference/use_data.html" class="external-link">use_data</a></span><span class="op">(</span><span class="va">microglia_sun_df</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">usethis</span><span class="fu">::</span><span class="fu">use_data</span><span class="op">(</span><span class="va">microglia_sun_df</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># To load</span></span></span>
 <span class="r-in"><span><span class="va">microglia_sun</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">microglia_sun_df</span><span class="op">$</span><span class="va">Gene</span><span class="op">[</span><span class="va">microglia_sun_df</span><span class="op">$</span><span class="va">DEG</span><span class="op">]</span><span class="op">)</span></span></span>
@@ -115,7 +115,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer></div>
