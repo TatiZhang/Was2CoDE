@@ -19,6 +19,12 @@ was2de_pvalue <- function(dist_list, meta_ind, Var,
   
   # Extract Var information
   Var <- as.character(meta_ind[[Var]])
+  if(is.factor(Var)){
+    level_vec <- levels(Var)
+  } else {
+    level_vec <- unique(Var)
+  }
+  stopifnot(length(level_vec) == 2)
   
   names(Var) <- meta_ind$individual
   
@@ -47,16 +53,16 @@ was2de_pvalue <- function(dist_list, meta_ind, Var,
             metric <- dist_list[[k]][kk, i, j]
             
             # Group 1: (dementia & dementia)
-            if ((status_i == "Dementia" & status_j == "Dementia")) {
+            if ((status_i == level_vec[2] & status_j == level_vec[2])) {
               metric_group_dd <- c(metric_group_dd, metric)
             }
             # Group 2: (no_dementia & no_dementia)
-            if ((status_i == "No_dementia" & status_j == "No_dementia")) {
+            if ((status_i == level_vec[1] & status_j == level_vec[1])) {
               metric_group_nn <- c(metric_group_nn, metric)
             }
             # Group 3: (dementia & no_dementia)
-            if ((status_i == "Dementia" & status_j == "No_dementia") |
-                (status_i == "No_dementia" & status_j == "Dementia")) {
+            if ((status_i == level_vec[2] & status_j == level_vec[1]) |
+                (status_i == level_vec[1] & status_j == level_vec[2])) {
               metric_group_dn <- c(metric_group_dn, metric)
             }
           }
