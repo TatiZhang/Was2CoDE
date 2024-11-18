@@ -71,6 +71,10 @@ was2de_pvalue <- function(dist_list, meta_ind, Var,
 
       metric_group_ddnn <- c(metric_group_dd, metric_group_nn)
       
+      # remove any NAs
+      metric_group_dn <- metric_group_dn[!is.na(metric_group_dn)]
+      metric_group_ddnn <- metric_group_ddnn[!is.na(metric_group_ddnn)]
+      
       # Perform the Wilcoxon test
       if (length(metric_group_ddnn) > 0 && length(metric_group_dn) > 0) {
         wilcox_test_result <- stats::wilcox.test(metric_group_ddnn, metric_group_dn, alternative = "less")
@@ -80,9 +84,9 @@ was2de_pvalue <- function(dist_list, meta_ind, Var,
       }
       
       # Means
-      mean_dd <- if (length(metric_group_dd) > 0) mean(metric_group_dd, na.rm = TRUE) else NA
-      mean_nn <- if (length(metric_group_nn) > 0) mean(metric_group_nn, na.rm = TRUE) else NA
-      mean_dn <- if (length(metric_group_dn) > 0) mean(metric_group_dn, na.rm = TRUE) else NA
+      mean_dd <- mean(metric_group_dd, na.rm = TRUE) 
+      mean_nn <- mean(metric_group_nn, na.rm = TRUE) 
+      mean_dn <- mean(metric_group_dn, na.rm = TRUE) 
       
       # Store the results in the result matrix
       results_mat[gene, ] <- c(mean_dd, mean_nn, mean_dn, p_val)

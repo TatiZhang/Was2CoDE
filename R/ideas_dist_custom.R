@@ -39,60 +39,60 @@ ideas_dist_custom <-
     if(!(is.data.frame(meta_ind))){
       stop("meta_ind should be a data.frame\n")
     }
-
+    
     if(is.data.table(meta_ind)){
       meta_ind = as.data.frame(meta_ind)
     }
-
-      # -----------------------------------------------------------------
-      # TZ:
-      # validates the structure and content of meta_cell and meta_ind, 
-      # checking for necessary columns including cell_id, individual,
-      # and the variable per cell (var_per_cell). 
-      # ensures that these columns contain unique cell and individual IDs 
-      # that match across the metadata and count matrices. 
-      # aligning the gene expression data with the corresponding metadata 
-      # for each cell and individual.
-      # -----------------------------------------------------------------
-
-      count_matrix = count_input
-      
-      if(! is.matrix(count_matrix)){
-        stop("count_matrix is not a matrix\n")
-      }
-      
-        
-      
-      n_cell = ncol(count_matrix)
-      n_gene = nrow(count_matrix)
-      
-      gene_ids = rownames(count_matrix)
-      cell_ids = colnames(count_matrix)
-      
-      if(is.null(gene_ids)){
-        stop("count_matrix should have row names for gene ids\n")
-      }
-      
-      if(is.null(cell_ids)){
-        stop("count_matrix should have col names for cell ids\n")
-      }
-      
-      if(length(unique(gene_ids)) != n_gene){
-        stop("row names of count_matrix (gene ids) are not unique\n")
-      }
-      
-      if(length(unique(cell_ids)) != n_cell){
-        stop("col names of count_matrix (cell ids) are not unique\n")
-      }
-      
-      message(sprintf("the count_matrix includes %d genes in %d cells\n", 
-                      n_gene, n_cell))
-      
-
-      if(any(meta_cell$cell_id != colnames(count_matrix))){
-        stop("cell_id in meta_cell do not match colnames of count_matrix\n")
-      }
-
+    
+    # -----------------------------------------------------------------
+    # TZ:
+    # validates the structure and content of meta_cell and meta_ind, 
+    # checking for necessary columns including cell_id, individual,
+    # and the variable per cell (var_per_cell). 
+    # ensures that these columns contain unique cell and individual IDs 
+    # that match across the metadata and count matrices. 
+    # aligning the gene expression data with the corresponding metadata 
+    # for each cell and individual.
+    # -----------------------------------------------------------------
+    
+    count_matrix = count_input
+    
+    if(! is.matrix(count_matrix)){
+      stop("count_matrix is not a matrix\n")
+    }
+    
+    
+    
+    n_cell = ncol(count_matrix)
+    n_gene = nrow(count_matrix)
+    
+    gene_ids = rownames(count_matrix)
+    cell_ids = colnames(count_matrix)
+    
+    if(is.null(gene_ids)){
+      stop("count_matrix should have row names for gene ids\n")
+    }
+    
+    if(is.null(cell_ids)){
+      stop("count_matrix should have col names for cell ids\n")
+    }
+    
+    if(length(unique(gene_ids)) != n_gene){
+      stop("row names of count_matrix (gene ids) are not unique\n")
+    }
+    
+    if(length(unique(cell_ids)) != n_cell){
+      stop("col names of count_matrix (cell ids) are not unique\n")
+    }
+    
+    message(sprintf("the count_matrix includes %d genes in %d cells\n", 
+                    n_gene, n_cell))
+    
+    
+    if(any(meta_cell$cell_id != colnames(count_matrix))){
+      stop("cell_id in meta_cell do not match colnames of count_matrix\n")
+    }
+    
     # -----------------------------------------------------------------
     # check other aspects of meta_cell
     # -----------------------------------------------------------------    
@@ -132,45 +132,83 @@ ideas_dist_custom <-
     # estimates the distribution(distance) for each gene and individual 
     # using Kernel Density Estimation (KDE)
     # -----------------------------------------------------------------
+    
+    message("estimating distribution for each gene and each individual by kde\n")
+    dat_res <- arrange_genes_by_donors(count_matrix, 
+                                       meta_ind, 
+                                       meta_cell)
+    dist_array_list <- dist_array_list(dat_res)
+    
+    if(verbose > 0) print("Analyzing genes")
+    
+    for(i in 1:length(dist_array_list)){
+      if(verbose > 1 && length(dist_array_list) > 10 && i %% 
+         floor(length(dist_array_list) /10) == 0) cat('*')
+      if(verbose > 2) print(paste("Gene: ", names(dat_res)[i]))
       
-      message("estimating distribution for each gene and each individual by kde\n")
-      dat_res <- arrange_genes_by_donors(count_matrix, 
-                                         meta_ind, 
-                                         meta_cell)
-      dist_array_list <- dist_array_list(dat_res)
-      
-      if(verbose > 0) print("Analyzing genes")
-      
-      for(i in 1:length(dist_array_list)){
-        if(verbose > 1 && length(dist_array_list) > 10 && i %% 
-           floor(length(dist_array_list) /10) == 0) cat('*')
-        if(verbose > 2) print(paste("Gene: ", names(dat_res)[i]))
-        
-        # Set diagonal elements for each matrix in the 3D array to 0
-        for (k in 1:6) {
-          diag(dist_array_list[[i]][,,k]) <- 0
+      # Set diagonal elements for each matrix in the 3D array to 0
+      for (k in 1:6) {
+        diag(dist_array_list[[i]][,,k]) <- 0
         # For loop:
         # For each pair of donors
         # compute the wasserstein distance b/w 2 distributions
-          for (j_a in 1:(nrow(meta_ind)-1)) {
+        for (j_a in 1:nrow(meta_ind)) {
           res_a = dat_res[[i]][[j_a]]
-          for (j_b in (j_a+1):nrow(meta_ind)) {
-            res_b = dat_res[[i]][[j_b]]
-
-            dist_array_list[[i]][j_a, j_b,] = tryCatch(
-              divergence(res_a, res_b), #calculation
-              error = function(e) { NA }
-            )
-
-            dist_array_list[[i]][j_b, j_a,] = dist_array_list[[i]][j_a, j_b,]
+          
+          #######
+          # this is where I start changing the code
+          #v##v#v
+          # instead of this:
+          # for (j_b in (j_a+1):nrow(meta_ind)) {
+          #v##v##v
+          # I want to instead:
+          # Randomly sample 1 AD donor, and 1 non-AD donor (neither of these two people can be j_a itself)
+          # And then, my for (j_b in (these two randomly selected donors))
+          #######
+          #         
+          #         res_b = dat_res[[i]][[j_b]]
+          #         
+          #         dist_array_list[[i]][j_a, j_b,] = tryCatch(
+          #           divergence(res_a, res_b), #calculation
+          #           error = function(e) { NA }
+          #         )
+          #         
+          #         dist_array_list[[i]][j_b, j_a,] = dist_array_list[[i]][j_a, j_b,]
+          #       }
+          #     }
+          #     dist_array_list[[i]]
+          #   }}
+          # 
+          # # Calculating the number of NA values in each element of dist_array_list
+          # nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
+          # table(nNA)
+          # Identify AD and non-AD donors, excluding the current donor j_a
+          
+          ad_donors <- which(meta_ind[[var2test]] == 1 & meta_ind$individual != meta_ind$individual[j_a])
+          non_ad_donors <- which(meta_ind[[var2test]] == 0 & meta_ind$individual != meta_ind$individual[j_a])
+          if (length(ad_donors) > 0 && length(non_ad_donors) > 0) {
+            sampled_ad <- sample(ad_donors, 1)
+            sampled_non_ad <- sample(non_ad_donors, 1)
+            
+            # Loop over the randomly sampled donors
+            for (j_b in c(sampled_ad, sampled_non_ad)) {
+              res_b <- dat_res[[i]][[j_b]]
+              
+              # Calculate the divergence and update the distance array
+              dist_array_list[[i]][j_a, j_b, ] <- tryCatch(
+                divergence(res_a, res_b),
+                error = function(e) { NA }
+              )
+              
+              # Symmetric assignment
+              dist_array_list[[i]][j_b, j_a, ] <- dist_array_list[[i]][j_a, j_b, ]
+            }
           }
         }
-        dist_array_list[[i]]
-      }}
-
-    # Calculating the number of NA values in each element of dist_array_list
-    nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
-    # table(nNA)
+      }
+    }
+    
+    nNA <- sapply(dist_array_list, function(x) { sum(is.na(c(x))) })
     
     if(verbose > 0) print("Finalizing output")
     
