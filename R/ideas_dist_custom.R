@@ -152,11 +152,15 @@ ideas_dist_custom <-
         # For loop:
         # For each pair of donors
         # compute the wasserstein distance b/w 2 distributions
-        for (j_a in 1:nrow(meta_ind)) {
-          res_a = dat_res[[i]][[j_a]]
+        #######
+        # this is where I start changing the code
+        
+        var_levels <- levels(as.factor(meta_ind[[var2test]]))
+        if (length(var_levels) != 2) stop("var2test must have exactly two levels.")
+        
+        level_1 <- var_levels[1]
+        level_2 <- var_levels[2]
           
-          #######
-          # this is where I start changing the code
           #v##v#v
           # instead of this:
           # for (j_b in (j_a+1):nrow(meta_ind)) {
@@ -183,9 +187,13 @@ ideas_dist_custom <-
           # nNA = sapply(dist_array_list, function(x){sum(is.na(c(x)))})
           # table(nNA)
           # Identify AD and non-AD donors, excluding the current donor j_a
+        for (j_a in seq_len(nrow(meta_ind))) {
+          res_a <- dat_res[[i]][[j_a]]
           
-          ad_donors <- which(meta_ind[[var2test]] == 1 & meta_ind$individual != meta_ind$individual[j_a])
-          non_ad_donors <- which(meta_ind[[var2test]] == 0 & meta_ind$individual != meta_ind$individual[j_a])
+          # Identify AD and non-AD donors, excluding the current donor j_a
+          ad_donors <- which(meta_ind[[var2test]] == level_1 & meta_ind$individual != meta_ind$individual[j_a])
+          non_ad_donors <- which(meta_ind[[var2test]] == level_2 & meta_ind$individual != meta_ind$individual[j_a])
+          
           if (length(ad_donors) > 0 && length(non_ad_donors) > 0) {
             sampled_ad <- sample(ad_donors, 1)
             sampled_non_ad <- sample(non_ad_donors, 1)
@@ -207,6 +215,7 @@ ideas_dist_custom <-
         }
       }
     }
+    
     
     nNA <- sapply(dist_array_list, function(x) { sum(is.na(c(x))) })
     
