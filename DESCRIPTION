@@ -1,6 +1,6 @@
 Package: IdeasCustom
 Title: Statistical tool using IDEAS method and Was-2 decomposition
-Version: 0.0.0.9004
+Version: 0.0.0.9006
 Authors@R: 
     person("Tati", "Zhang", , "Wenjiz1@uw.edu", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
