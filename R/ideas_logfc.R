@@ -165,7 +165,8 @@ ideas_logfc <-
               error = function(e) { NA }
             )
             
-            dist_array1[j_b, j_a] = dist_array1[j_a, j_b]
+            # the row is donor 1, the column is donor 2
+            dist_array1[j_b, j_a] = -dist_array1[j_a, j_b]
           }
         }
         dist_array1
