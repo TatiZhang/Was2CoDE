@@ -4,36 +4,43 @@
 #' @param b Numeric (gene expressions) vector.
 #' @param p Integer, power parameter for the Wasserstein distance.
 #'
-#' @return A numeric vector containing six divergence metrics: distance, location difference, 
-#' location sign, size difference, size sign, and shape difference.
+#' @return A numeric vector containing four divergence metrics: distance, location difference, 
+#'size difference, and shape difference.
 #' @export
 #'
 divergence <- function(a, b, p=2) {
   if (!is.numeric(a) || !is.numeric(b)) {
     stop("Both 'a' and 'b' must be numeric vectors.")
   }
-  distance <- transport::wasserstein1d(a, b, p, wa = NULL, wb = NULL)
-  location <- (mean(a) - mean(b))^2
-  location_sign <- mean(a) - mean(b)
-  size <- (sd(a) - sd(b))^2
-  size_sign <- sd(a) - sd(b)
+  
+  a <- a[!is.na(a)]
+  b <- b[!is.na(b)]
+  
+  if(length(a) == 0 || length(b) == 0) {
+    stop("Both 'a' and 'b' have no non-NA values.")
+  }
+  
+  was2 <- transport::wasserstein1d(a, b, p, wa = NULL, wb = NULL)
+  location <- mean(a) - mean(b)
+  
+  sd_a <- stats::sd(a)
+  sd_b <- stats::sd(b)
+  size <- sd_a - sd_b
   quantiles <- seq(0, 1, length.out = 100)
-  quantiles_a <- quantile(a, probs = quantiles)
-  quantiles_b <- quantile(b, probs = quantiles)
-  quantile_cor_ab <- cor(quantiles_a, quantiles_b)
-  shape <- abs(2 * sd(a) * sd(b) * (1 - quantile_cor_ab))
+  quantiles_a <- stats::quantile(a, probs = quantiles)
+  quantiles_b <- stats::quantile(b, probs = quantiles)
+  quantile_cor_ab <- stats::cor(quantiles_a, quantiles_b)
+  shape <- abs(2 * sd_a * sd_b * (1 - quantile_cor_ab))
   
   result <- c(
-    distance,
+    was2,
     location,
-    location_sign,
     size,
-    size_sign,
     shape
   )
   
 
-  if (length(result) != 6) {
+  if (length(result) != 4) {
     stop("Result list from divergence has incorrect length")
   }
   

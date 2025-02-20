@@ -1,13 +1,16 @@
-Package: IdeasCustom
+Package: Was2CODE
 Title: Statistical tool using IDEAS method and Was-2 decomposition
-Version: 0.0.0.9006
+Version: 0.0.0.9007
 Authors@R: 
     person("Tati", "Zhang", , "Wenjiz1@uw.edu", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: The IdeasCustom package provides a tool for analyzing gene expression data on individual-level using IDEAS mehtod and decomposed components of Wasserstein-2 distance. It includes functions to arrange gene expression data by donors, initialize distance array lists, compute divergence metrics using the Wasserstein distance, and more. This package is designed to facilitate the exploration and analysis of complex gene expression datasets.
 License: MIT + file LICENSE
 Imports: 
-    transport
+    transport,
+    doRNG,
+    doParallel,
+    foreach
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
