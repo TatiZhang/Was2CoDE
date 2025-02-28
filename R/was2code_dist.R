@@ -167,6 +167,7 @@ was2code_dist <-
       }
       dist_array1
     }
+    names(dist_array_list) <- gene_ids
     
     return(dist_array_list)
   }

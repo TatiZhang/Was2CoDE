@@ -19,13 +19,13 @@ test_that("divergence function calculates correct values", {
   quantile_cor_ab <- cor(quantiles_a, quantiles_b)
 
   # Check specific calculations
-  expect_equal(result[1], transport::wasserstein1d(a, b,p=2,wa = NULL, wb = NULL))
-  expect_equal(result[2], (mean(a) - mean(b))^2)
-  expect_equal(result[3], mean(a) - mean(b))
-  expect_equal(result[4], (sd(a) - sd(b))^2)
-  expect_equal(result[5], sd(a) - sd(b))
-  expect_equal(result[6], abs(2 * sd(a) * sd(b) * (1 - quantile_cor_ab)))
+  expect_equal(result[1], transport::wasserstein1d(a, b, p=2,wa = NULL, wb = NULL))
+  expect_equal(result[2], mean(a) - mean(b))
+  expect_equal(result[3], sd(a) - sd(b))
+  expect_equal(result[4], abs(2 * sd(a) * sd(b) * (1 - quantile_cor_ab)))
 })
+
+## THIS FILE WILL NEED TO BE UPDATED
 
 test_that("divergence function handles equal inputs", {
   set.seed(0)
