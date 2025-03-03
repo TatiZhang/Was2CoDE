@@ -7,36 +7,49 @@
 #' data, organizing it by donors.
 #' 
 #' 
-#' @param count_matrix 
-#' @param meta_ind 
-#' @param meta_cell 
+#' @param count_matrix A matrix with gene expression data (genes as rows, cells as columns)
+#' @param meta_ind A data frame with individual/donor metadata
+#' @param meta_cell A data frame with cell metadata
 #'
 #' @return dat_res, which is a list (of genes) of lists (of donors)
 #' @export
 arrange_genes_by_donors <- function(count_matrix, meta_ind, meta_cell) {
-  n_gene = nrow(count_matrix)
-  gene_ids = rownames(count_matrix)
-  dat_res=foreach (i_g = 1:n_gene) %dorng% {
-    res_ig = list()
-    
-    # For loop:
-    # For each gene (i_g), the function iterates over each individual 
-    # in meta_ind, extracting the corresponding expression data 
-    # from the count matrix. 
-    # preprocessing to make the data more normally distributed.
-    # outputing the residuals that we want
-    
-    # For each gene (i_g), iterate over each individual in meta_ind
-    for (j in 1:nrow(meta_ind)) {
-      ind_j = meta_ind$individual[j]  # donor's ID
-      w2use = which(meta_cell$individual == ind_j)  # grab all indexes associated with this donor
-      # Directly use the count matrix rows corresponding to this gene and columns for the donor
-      dat_j = count_matrix[i_g, w2use]
-      res_ig[[j]] = dat_j 
-    }
-    names(res_ig) = as.character(meta_ind$individual)
-    res_ig  #output the residual(*)
+  n_gene <- nrow(count_matrix)
+  gene_ids <- rownames(count_matrix)
+  
+  # Skip parallel and use sequential processing
+  # This version doesn't attempt parallel processing which is causing problems
+  foreach::registerDoSEQ()
+  
+  # Pre-compute the cell indices for each individual to avoid recalculating
+  individual_cells <- list()
+  for (ind in meta_ind$individual) {
+    individual_cells[[as.character(ind)]] <- which(meta_cell$individual == ind)
   }
-  names(dat_res) = as.character(gene_ids)
+  
+  # Process data sequentially
+  dat_res <- list()
+  
+  # Process each gene sequentially
+  for (i_g in 1:n_gene) {
+    res_ig <- list()
+    
+    # For each individual, extract the gene expression data
+    for (j in 1:nrow(meta_ind)) {
+      ind_j <- meta_ind$individual[j]  # donor's ID
+      w2use <- individual_cells[[as.character(ind_j)]]  # Use pre-computed indices
+      
+      # Extract expression data for this gene and donor
+      dat_j <- count_matrix[i_g, w2use]
+      res_ig[[j]] <- dat_j
+    }
+    
+    names(res_ig) <- as.character(meta_ind$individual)
+    dat_res[[i_g]] <- res_ig
+  }
+  
+  # Set names for the gene-level list
+  names(dat_res) <- as.character(gene_ids)
+  
   return(dat_res)
 }

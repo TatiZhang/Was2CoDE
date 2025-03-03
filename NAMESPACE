@@ -3,6 +3,6 @@
 export(arrange_genes_by_donors)
 export(dist_array_list)
 export(divergence)
-export(ideas_dist_custom)
+export(was2code_dist)
 export(result_array_list)
 export(was2de_pvalue)
