@@ -99,8 +99,7 @@ was2code_permanova <- function(dist_list,
         
         m2 <- tryCatch(stats::glm(perm_x ~ -1 + z, family = stats::binomial(link="logit")), 
                        warning = function(w) { NULL }, 
-                       error = function(e) { NULL},
-                       finally = {})
+                       error = function(e) { NULL})
         
         if(! is.null(m2)){
           resid_p_i <- perm_x - fitted(m2) 
@@ -125,10 +124,11 @@ was2code_permanova <- function(dist_list,
   
   F_perm0 <- apply(F_perm, 2, function(x){return(x-F_ob)} )
   
-  if(length(F_ob)==1){ F_perm0 <- t(F_perm0) }
+  if(length(F_ob) == 1){ F_perm0 <- t(F_perm0) }
   
-  pval <- rowMeans(cbind(F_perm0, rep(1,nrow(F_perm0))) >= 0)
-  
+  pval <- rowMeans(cbind(F_perm0, rep(1, nrow(F_perm0))) >= 0)
+  names(pval) <- names(dist_list)
+    
   if(length(wNA) == 0){
     pval_all <- pval
   }else{
