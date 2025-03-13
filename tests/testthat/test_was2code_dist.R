@@ -5,7 +5,7 @@ library(data.table)
 library(doRNG)
 library(doParallel)
 # Register parallel backend
-cl <- makeCluster(detectCores() - 1)  # Use available cores
+cl <- makeCluster(min(2, detectCores() - 1))
 registerDoParallel(cl)
 # Load test data
 load("../assets/test_data1.RData")

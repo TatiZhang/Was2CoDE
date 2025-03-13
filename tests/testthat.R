@@ -1,4 +1,4 @@
 library(testthat)
-library(IdeasCustom)
+library(Was2CoDE)
 
-testthat::test_check("IdeasCustom")
+testthat::test_check("Was2CoDE")

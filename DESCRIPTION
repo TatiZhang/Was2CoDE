@@ -1,4 +1,4 @@
-Package: Was2CODE
+Package: Was2CoDE
 Title: Statistical tool using IDEAS method and Was-2 decomposition
 Version: 0.0.0.9007
 Authors@R: 
@@ -10,7 +10,9 @@ Imports:
     transport,
     doRNG,
     doParallel,
-    foreach
+    foreach,
+    Matrix,
+    stats
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
