@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Getting Started with IdeasCustom • IdeasCustom</title>
+<title>Getting Started with Was2CoDE • Was2CoDE</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Getting Started with IdeasCustom">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Getting Started with Was2CoDE">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -18,9 +18,9 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="../index.html">IdeasCustom</a>
+    <a class="navbar-brand me-2" href="../index.html">Was2CoDE</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9006</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,8 +29,13 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
-<li class="active nav-item"><a class="nav-link" href="../articles/IdeasCustom.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="active nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/IdeasCustom.html">Getting Started with Was2CoDE</a></li>
+  </ul>
+</li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -49,7 +54,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Getting Started with IdeasCustom</h1>
+      <h1>Getting Started with Was2CoDE</h1>
             
       
 
@@ -59,62 +64,32 @@
     
     
 <div class="section level2">
-<h2 id="getting-started-with-ideascustom">Getting Started with IdeasCustom<a class="anchor" aria-label="anchor" href="#getting-started-with-ideascustom"></a>
+<h2 id="getting-started-with-was2code">Getting Started with Was2CoDE<a class="anchor" aria-label="anchor" href="#getting-started-with-was2code"></a>
 </h2>
-<p>The IdeasCustom package provides a tool for analyzing gene expression
+<p>The Was2CoDE package provides a tool for analyzing gene expression
 data on individual-level using IDEAS mehtod and decomposed components of
 Wasserstein-2 distance. This vignette demonstrates how to use the
 package functions to analyze synthetic gene expression data.</p>
 <div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
-<p>First, ensure that you have installed the IdeasCustom package from
+<p>First, ensure that you have installed the Was2CoDE package from
 GitHub:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install devtools if you haven't already</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Installing package into '/home/runner/work/_temp/Library'</span></span>
-<span><span class="co">## (as 'lib' is unspecified)</span></span></code></pre>
-<pre><code><span><span class="co">## also installing the dependencies 'credentials', 'zip', 'gitcreds', 'ini', 'httpuv', 'xtable', 'sourcetools', 'later', 'promises', 'diffobj', 'clipr', 'crayon', 'gert', 'gh', 'rprojroot', 'rstudioapi', 'shiny', 'htmlwidgets', 'prettyunits', 'xopen', 'brew', 'commonmark', 'stringi', 'stringr', 'cpp11', 'praise', 'waldo', 'usethis', 'ellipsis', 'miniUI', 'pkgbuild', 'pkgload', 'profvis', 'rcmdcheck', 'remotes', 'roxygen2', 'rversions', 'testthat', 'urlchecker'</span></span></code></pre>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"data.table"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Installing package into '/home/runner/work/_temp/Library'</span></span>
-<span><span class="co">## (as 'lib' is unspecified)</span></span></code></pre>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"doRNG"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Installing package into '/home/runner/work/_temp/Library'</span></span>
-<span><span class="co">## (as 'lib' is unspecified)</span></span></code></pre>
-<pre><code><span><span class="co">## also installing the dependencies 'foreach', 'rngtools', 'iterators'</span></span></code></pre>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install IdeasCustom from GitHub</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"TatiZhang/IdeasCustom"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## Using github PAT from envvar GITHUB_PAT. Use `gitcreds::gitcreds_set()` and unset GITHUB_PAT in .Renviron (or elsewhere) if you want to use the more secure git credential store instead.</span></span></code></pre>
-<pre><code><span><span class="co">## Downloading GitHub repo TatiZhang/IdeasCustom@HEAD</span></span></code></pre>
-<pre><code><span><span class="co">## RcppEigen (NA -&gt; 0.3.4.0.2) [CRAN]</span></span></code></pre>
-<pre><code><span><span class="co">## Installing 1 packages: RcppEigen</span></span></code></pre>
-<pre><code><span><span class="co">## Installing package into '/home/runner/work/_temp/Library'</span></span>
-<span><span class="co">## (as 'lib' is unspecified)</span></span></code></pre>
-<pre><code><span><span class="co">## <span style="color: #00BBBB;">──</span> <span style="color: #00BBBB;">R CMD build</span> <span style="color: #00BBBB;">─────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">## * checking for file ‘/tmp/RtmplNCmoQ/remotes1869520b96da/TatiZhang-Was2CoDE-2d20ea5/DESCRIPTION’ ... OK</span></span>
-<span><span class="co">## * preparing ‘IdeasCustom’:</span></span>
-<span><span class="co">## * checking DESCRIPTION meta-information ... OK</span></span>
-<span><span class="co">## * checking for LF line-endings in source and make files and shell scripts</span></span>
-<span><span class="co">## * checking for empty or unneeded directories</span></span>
-<span><span class="co">##   NB: this package now depends on R (&gt;= 3.5.0)</span></span>
-<span><span class="co">##   WARNING: Added dependency on R &gt;= 3.5.0 because serialized objects in</span></span>
-<span><span class="co">##   serialize/load version 3 cannot be read in older versions of R.</span></span>
-<span><span class="co">##   File(s) containing such objects:</span></span>
-<span><span class="co">##     ‘IdeasCustom/tests/assets/test_data1.RData’</span></span>
-<span><span class="co">## * building ‘IdeasCustom_0.0.0.9006.tar.gz’</span></span></code></pre>
-<pre><code><span><span class="co">## Installing package into '/home/runner/work/_temp/Library'</span></span>
-<span><span class="co">## (as 'lib' is unspecified)</span></span></code></pre>
+<code class="sourceCode R"><span><span class="co"># Don't run these during build/check</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"data.table"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"doRNG"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Install Was2CoDE from GitHub (example only)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"TatiZhang/Was2CoDE"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="load-the-package">Load the package<a class="anchor" aria-label="anchor" href="#load-the-package"></a>
 </h3>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load the packages</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tatizhang.github.io/IdeasCustom/">IdeasCustom</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tatizhang.github.io/IdeasCustom/">Was2CoDE</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://renozao.github.io/doRNG/" class="external-link">doRNG</a></span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Loading required package: foreach</span></span></code></pre>
@@ -123,7 +98,7 @@ GitHub:</p>
 <div class="section level3">
 <h3 id="generate-synthetic-data">Generate Synthetic Data<a class="anchor" aria-label="anchor" href="#generate-synthetic-data"></a>
 </h3>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Number of genes and cells</span></span>
@@ -154,445 +129,12 @@ GitHub:</p>
 <div class="section level3">
 <h3 id="analyze-gene-expression-data">Analyze Gene Expression Data<a class="anchor" aria-label="anchor" href="#analyze-gene-expression-data"></a>
 </h3>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute distance metrics</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ideas_dist_custom.html">ideas_dist_custom</a></span><span class="op">(</span><span class="va">count_input</span>, <span class="va">meta_cell</span>, <span class="va">meta_ind</span>, <span class="va">var_per_cell</span>, <span class="va">var2test</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## the count_matrix includes 10 genes in 20 cells</span></span></code></pre>
-<pre><code><span><span class="co">## estimating distribution for each gene and each individual by kde</span></span></code></pre>
-<pre><code><span><span class="co">## Warning: executing %dopar% sequentially: no parallel backend registered</span></span></code></pre>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Print the result</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## $distance</span></span>
-<span><span class="co">## , , donor1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene2       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene3       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene4       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene5       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene6       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene7       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene8       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene9       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene10      0     NA     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor2</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene2      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene3      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene4      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene5      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene6      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene7      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene8      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene9      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene10     NA      0     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor3</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene2      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene3      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene4      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene5      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene6      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene7      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene8      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene9      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene10     NA     NA      0     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor4</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene2      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene3      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene4      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene5      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene6      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene7      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene8      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene9      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene10     NA     NA     NA      0     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor5</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene2      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene3      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene4      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene5      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene6      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene7      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene8      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene9      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene10     NA     NA     NA     NA      0</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## $location</span></span>
-<span><span class="co">## , , donor1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene2       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene3       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene4       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene5       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene6       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene7       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene8       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene9       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene10      0     NA     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor2</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene2      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene3      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene4      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene5      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene6      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene7      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene8      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene9      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene10     NA      0     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor3</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene2      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene3      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene4      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene5      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene6      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene7      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene8      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene9      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene10     NA     NA      0     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor4</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene2      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene3      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene4      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene5      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene6      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene7      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene8      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene9      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene10     NA     NA     NA      0     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor5</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene2      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene3      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene4      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene5      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene6      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene7      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene8      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene9      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene10     NA     NA     NA     NA      0</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## $location_sign</span></span>
-<span><span class="co">## , , donor1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene2       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene3       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene4       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene5       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene6       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene7       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene8       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene9       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene10      0     NA     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor2</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene2      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene3      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene4      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene5      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene6      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene7      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene8      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene9      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene10     NA      0     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor3</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene2      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene3      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene4      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene5      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene6      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene7      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene8      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene9      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene10     NA     NA      0     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor4</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene2      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene3      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene4      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene5      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene6      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene7      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene8      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene9      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene10     NA     NA     NA      0     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor5</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene2      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene3      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene4      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene5      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene6      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene7      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene8      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene9      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene10     NA     NA     NA     NA      0</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## $size</span></span>
-<span><span class="co">## , , donor1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene2       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene3       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene4       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene5       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene6       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene7       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene8       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene9       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene10      0     NA     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor2</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene2      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene3      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene4      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene5      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene6      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene7      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene8      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene9      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene10     NA      0     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor3</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene2      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene3      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene4      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene5      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene6      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene7      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene8      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene9      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene10     NA     NA      0     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor4</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene2      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene3      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene4      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene5      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene6      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene7      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene8      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene9      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene10     NA     NA     NA      0     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor5</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene2      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene3      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene4      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene5      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene6      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene7      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene8      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene9      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene10     NA     NA     NA     NA      0</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## $size_sign</span></span>
-<span><span class="co">## , , donor1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene2       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene3       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene4       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene5       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene6       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene7       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene8       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene9       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene10      0     NA     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor2</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene2      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene3      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene4      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene5      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene6      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene7      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene8      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene9      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene10     NA      0     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor3</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene2      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene3      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene4      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene5      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene6      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene7      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene8      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene9      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene10     NA     NA      0     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor4</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene2      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene3      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene4      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene5      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene6      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene7      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene8      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene9      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene10     NA     NA     NA      0     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor5</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene2      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene3      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene4      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene5      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene6      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene7      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene8      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene9      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene10     NA     NA     NA     NA      0</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## $shape</span></span>
-<span><span class="co">## , , donor1</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene2       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene3       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene4       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene5       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene6       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene7       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene8       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene9       0     NA     NA     NA     NA</span></span>
-<span><span class="co">## gene10      0     NA     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor2</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene2      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene3      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene4      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene5      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene6      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene7      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene8      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene9      NA      0     NA     NA     NA</span></span>
-<span><span class="co">## gene10     NA      0     NA     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor3</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene2      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene3      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene4      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene5      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene6      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene7      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene8      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene9      NA     NA      0     NA     NA</span></span>
-<span><span class="co">## gene10     NA     NA      0     NA     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor4</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene2      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene3      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene4      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene5      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene6      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene7      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene8      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene9      NA     NA     NA      0     NA</span></span>
-<span><span class="co">## gene10     NA     NA     NA      0     NA</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">## , , donor5</span></span>
-<span><span class="co">## </span></span>
-<span><span class="co">##        donor1 donor2 donor3 donor4 donor5</span></span>
-<span><span class="co">## gene1      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene2      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene3      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene4      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene5      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene6      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene7      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene8      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene9      NA     NA     NA     NA      0</span></span>
-<span><span class="co">## gene10     NA     NA     NA     NA      0</span></span></code></pre>
+<span><span class="co"># result &lt;- Was2CoDE::was2code_dist(count_input, meta_cell, meta_ind, var_per_cell, var2test)</span></span>
+<span><span class="co"># </span></span>
+<span><span class="co"># # Print the result</span></span>
+<span><span class="co"># print(result)</span></span></code></pre></div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
