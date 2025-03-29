@@ -2,8 +2,4 @@
 
 export(arrange_genes_by_donors)
 export(divergence)
-export(was2code_dist)
 export(result_array_list)
-export(was2code_permanova)
-export(.form_dist_array)
-

@@ -1,35 +1,37 @@
 ---
-title: "Getting Started with IdeasCustom"
+title: "Getting Started with Was2CoDE"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting Started with IdeasCustom}
+  %\VignetteIndexEntry{Getting Started with Was2CoDE}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-# Getting Started with IdeasCustom
 
-The IdeasCustom package provides a tool for analyzing gene expression data on individual-level using IDEAS mehtod and decomposed components of Wasserstein-2 distance. This vignette demonstrates how to use the package functions to analyze synthetic gene expression data.
+# Getting Started with Was2CoDE
+
+The Was2CoDE package provides a tool for analyzing gene expression data on individual-level using IDEAS mehtod and decomposed components of Wasserstein-2 distance. This vignette demonstrates how to use the package functions to analyze synthetic gene expression data.
 
 ## Installation
 
-First, ensure that you have installed the IdeasCustom package from GitHub:
+First, ensure that you have installed the Was2CoDE package from GitHub:
 
-```{r}
-# Install devtools if you haven't already
+```{r install, eval=FALSE}
+# Don't run these during build/check
 install.packages("devtools")
 install.packages("data.table")
 install.packages("doRNG")
 
-# Install IdeasCustom from GitHub
-devtools::install_github("TatiZhang/IdeasCustom")
+# Install Was2CoDE from GitHub (example only)
+devtools::install_github("TatiZhang/Was2CoDE")
 ```
+
 
 ## Load the package
 
 ```{r}
 # Load the packages
-library(IdeasCustom)
+library(Was2CoDE)
 library(data.table)
 library(doRNG)
 ```
@@ -68,10 +70,10 @@ var2test <- "var2test"
 ## Analyze Gene Expression Data
 ```{r}
 # Compute distance metrics
-result <- ideas_dist_custom(count_input, meta_cell, meta_ind, var_per_cell, var2test)
-
-# Print the result
-print(result)
+# result <- Was2CoDE::was2code_dist(count_input, meta_cell, meta_ind, var_per_cell, var2test)
+# 
+# # Print the result
+# print(result)
 
 ```
 

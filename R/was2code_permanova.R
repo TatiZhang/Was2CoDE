@@ -74,8 +74,8 @@ was2code_permanova <- function(dist_list,
       .calc_F_manova(dist_array, label = perm1)
     })
   } else {
-    fm1 <- as.formula(paste("~", paste(var2adjust, collapse=" + ")))
-    z <- model.matrix(fm1, data = meta_ind)
+    fm1 <- stats::as.formula(paste("~", paste(var2adjust, collapse=" + ")))
+    z <- stats::model.matrix(fm1, data = meta_ind)
     
     if(residulize_x){
       resid_perm <- matrix(NA, nrow(meta_ind), n_perm)
@@ -217,7 +217,7 @@ was2code_permanova <- function(dist_list,
     } 
     
     i <- 0
-    F_stats <- foreach (i = 1:ncol(Rs), .combine='cbind') %dorng% {
+    F_stats <- foreach::foreach (i = 1:ncol(Rs), .combine='cbind') %dorng% {
       
       if(is.null(z)){
         xz <- Rs[,i]

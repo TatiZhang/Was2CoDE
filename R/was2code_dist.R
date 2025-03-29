@@ -4,8 +4,9 @@ was2code_dist <-
            meta_cell, 
            meta_ind, 
            var_per_cell, 
-           var2test) {
-    
+           var2test,
+           ncores = 2) {
+  
     if(!(is.data.frame(meta_cell))){
       stop("meta_cell should be a data.frame\n")
     }
@@ -20,6 +21,41 @@ was2code_dist <-
     
     if(is.data.table(meta_ind)){
       meta_ind = as.data.frame(meta_ind)
+    }
+    # -----------------------------------------------------------------
+    # setting up cores
+    # -----------------------------------------------------------------
+    if (!requireNamespace("doParallel", quietly = TRUE)) {
+      stop("Package 'doParallel' is needed for this function to work. Please install it.",
+           call. = FALSE)
+    }
+    if (!requireNamespace("doRNG", quietly = TRUE)) {
+      stop("Package 'doRNG' is needed for this function to work. Please install it.",
+           call. = FALSE)
+    }
+    if (!requireNamespace("foreach", quietly = TRUE)) {
+      stop("Package 'foreach' is needed for this function to work. Please install it.",
+           call. = FALSE)
+    }
+    
+    # # Register parallel backend with the specified number of cores
+    # prev_backend <- foreach::getDoParName()
+    # on.exit({
+    #   if (prev_backend != "sequential") {
+    #     foreach::setDefaultCluster(NULL)
+    #     if (prev_backend != "doParallel") {
+    #       eval(parse(text = paste0("do", prev_backend, "::register", prev_backend, "()")))
+    #     }
+    #   }
+    # })
+    
+    cl <- parallel::makeCluster(ncores)
+    doParallel::registerDoParallel(cl)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    
+    # Rest of your function code remains the same
+    if(!(is.data.frame(meta_cell))){
+      stop("meta_cell should be a data.frame\n")
     }
     
     # -----------------------------------------------------------------
@@ -119,7 +155,7 @@ was2code_dist <-
     # -----------------------------------------------------------------
     message("estimating distribution for each gene and each individual by kde\n")
     cov_value <- apply(log10(meta_cell[,var_per_cell,drop=FALSE]), 2, stats::median)
-    dat_res <- foreach (i_g = 1:n_gene) %dorng% {
+    dat_res <- foreach::foreach(i_g = 1:n_gene, .packages = c("stats")) %dorng% {
       res_ig <- list()
       
       for (j in 1:nrow(meta_ind)) {
@@ -139,7 +175,7 @@ was2code_dist <-
     }
     
     
-    dist_array_list <- foreach (i_g = 1:n_gene) %dorng% {
+    dist_array_list <- foreach::foreach(i_g = 1:n_gene) %dorng% {
       res_ig <- dat_res[[i_g]]
       dist_array1 <- array(NA, 
                            dim = c(rep(nrow(meta_ind), 2), 4),

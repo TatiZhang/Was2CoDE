@@ -14,8 +14,8 @@ divergence(a, b, p = 2)
 \item{p}{Integer, power parameter for the Wasserstein distance.}
 }
 \value{
-A numeric vector containing six divergence metrics: distance, location difference,
-location sign, size difference, size sign, and shape difference.
+A numeric vector containing four divergence metrics: distance, location difference,
+size difference, and shape difference.
 }
 \description{
 define divergence() using wasserstein1d()
