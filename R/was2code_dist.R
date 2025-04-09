@@ -1,3 +1,16 @@
+#' Compute Wasserstein-2 Distance Between Individuals
+#'
+#' @param count_input A count matrix (genes x cells)
+#' @param meta_cell Cell-level metadata including 'individual' and 'cell_id'
+#' @param meta_ind Individual-level metadata including 'individual' and test variable
+#' @param var_per_cell Variable to normalize per cell (e.g., "nCount_RNA")
+#' @param var2test Binary variable to test at the individual level
+#' @param ncores Number of cores to use for parallelization
+#' @param k Number of opposite-group individuals to compare each person with (default = NULL for all)
+#' @return A list of 3D distance arrays (one per gene)
+#' @export
+#' 
+
 # modified from https://github.com/Sun-lab/ideas/blob/main/R/ideas_dist.R
 was2code_dist <-
   function(count_input, 
