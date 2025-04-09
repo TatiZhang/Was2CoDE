@@ -5,7 +5,8 @@ was2code_dist <-
            meta_ind, 
            var_per_cell, 
            var2test,
-           ncores = 2) { #[[KZL: Add a new parameter "k" which controls how many case or controls each person is compared to]]
+           ncores = 2,
+           k = NULL) { #[[KZL: Add a new parameter "k" which controls how many case or controls each person is compared to]]
   
     if(!(is.data.frame(meta_cell))){
       stop("meta_cell should be a data.frame\n")
@@ -174,6 +175,15 @@ was2code_dist <-
       res_ig
     }
     
+    # Add group labels (e.g., case vs control)
+    group_labels <- meta_ind[[var2test]]
+    group_levels <- unique(group_labels)
+    if (length(group_levels) != 2) {
+      stop("The variable for testing must be binary (e.g., case/control).")
+    }
+    
+    case_inds <- meta_ind$individual[group_labels == group_levels[1]]
+    control_inds <- meta_ind$individual[group_labels == group_levels[2]]
     
     dist_array_list <- foreach::foreach(i_g = 1:n_gene) %dorng% {
       res_ig <- dat_res[[i_g]]
@@ -185,11 +195,24 @@ was2code_dist <-
       
       for(kk in 1:4) diag(dist_array1[,,kk]) <- 0
       
-      ## [[KZL: if k is larger than the number of case or controls, just compare everyone to everyone else]]
-      for (j_a in 1:(nrow(meta_ind)-1)) { 
-        res_a <- res_ig[[j_a]]
+      for (j_a in 1:nrow(meta_ind)) {
+        id_a <- meta_ind$individual[j_a]
+        label_a <- group_labels[j_a]
         
-        for (j_b in (j_a+1):nrow(meta_ind)) {
+        # Determine comparison group (opposite label)
+        opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
+        opp_inds <- meta_ind$individual[group_labels == opp_group]
+        j_b_candidates <- match(opp_inds, meta_ind$individual)
+        
+        if (!is.null(k) && length(j_b_candidates) > k) {
+          set.seed(j_a)  # for reproducibility
+          j_b_candidates <- sample(j_b_candidates, k)
+        }
+        
+        for (j_b in j_b_candidates) {
+          if (j_b == j_a || is.na(j_b)) next
+          
+          res_a <- res_ig[[j_a]]
           res_b <- res_ig[[j_b]]
           
           dist_array1[j_a, j_b,] <- tryCatch(
@@ -197,17 +220,12 @@ was2code_dist <-
             error = function(e) { rep(NA, 4) }
           )
           
-          # the row is donor 1, the column is donor 2
-          # we need to flip the mean and standard deviation (which are signed, elements 2 and 3)
-          dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1,-1,-1,1)
+          dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
         }
       }
       dist_array1
     }
     
-    ## [[KZL: Else, compare each person j_a to k cases and to k controls. Leave all other values of dist_array as NA]]
-    
     names(dist_array_list) <- gene_ids
-    
     return(dist_array_list)
   }

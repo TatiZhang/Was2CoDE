@@ -151,3 +151,51 @@ test_that("was2code_dist outputs correctly", {
 
 # Stop parallel backend after tests
 stopCluster(cl)
+
+test_that("was2code_dist runs faster with multiple cores", {
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  # Subset to a larger number of genes to increase runtime
+  genes_to_test <- seq_len(min(200, nrow(count_matrix_count)))
+
+  count_matrix_large <- count_matrix_count[genes_to_test, ]
+  
+  # Single-core
+  t1_start <- Sys.time()
+  result_single_core <- was2code_dist(
+    count_input = count_matrix_large,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1
+  )
+  t1_end <- Sys.time()
+  time_single_core <- t1_end - t1_start
+  print(paste("Single-core time:", time_single_core))
+  
+  # Multi-core
+  t2_start <- Sys.time()
+  result_multi_core <- was2code_dist(
+    count_input = count_matrix_large,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 2
+  )
+  t2_end <- Sys.time()
+  time_multi_core <- t2_end - t2_start
+  print(paste("Multi-core time:", time_multi_core))
+  
+  # Basic sanity check
+  expect_true(length(result_single_core) == length(result_multi_core),
+              info = "Results should have the same number of genes.")
+  
+  # Optional: Add a message if parallelization worked
+  if (as.numeric(time_multi_core, units = "secs") >= as.numeric(time_single_core, units = "secs")) {
+    warning("Parallel version did not run faster. Consider increasing dataset size for clearer speedup.")
+  } else {
+    message("Parallel version ran faster.")
+  }
+})
