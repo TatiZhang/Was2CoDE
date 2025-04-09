@@ -158,7 +158,8 @@ test_that("was2code_dist runs faster with multiple cores", {
   # Subset to a larger number of genes to increase runtime
   genes_to_test <- seq_len(min(200, nrow(count_matrix_count)))
 
-  count_matrix_large <- count_matrix_count[genes_to_test, ]
+  count_matrix_large <- count_matrix_count[rep(1:5, each = 40), ]
+  rownames(count_matrix_large) <- paste0("g", 1:nrow(count_matrix_large))
   
   # Single-core
   t1_start <- Sys.time()
