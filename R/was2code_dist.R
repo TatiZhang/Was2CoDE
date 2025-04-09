@@ -5,7 +5,7 @@ was2code_dist <-
            meta_ind, 
            var_per_cell, 
            var2test,
-           ncores = 2) {
+           ncores = 2) { #[[KZL: Add a new parameter "k" which controls how many case or controls each person is compared to]]
   
     if(!(is.data.frame(meta_cell))){
       stop("meta_cell should be a data.frame\n")
@@ -165,7 +165,7 @@ was2code_dist <-
         z     <- log10(meta_cell[w2use, var_per_cell, drop = FALSE])
         z     <- as.data.frame(z)
         str_z <- paste(names(z), collapse= "+")
-        fmla  <- as.formula(paste("log10(dat_j + 0.5) ~ ", str_z))
+        fmla  <- stats::as.formula(paste("log10(dat_j + 0.5) ~ ", str_z))
         lm_j  <- stats::lm(fmla, data = z)
         base_j <- c(t(lm_j$coefficients) %*% c(1, cov_value))
         res_ig[[j]] <- lm_j$resid + base_j
@@ -185,7 +185,8 @@ was2code_dist <-
       
       for(kk in 1:4) diag(dist_array1[,,kk]) <- 0
       
-      for (j_a in 1:(nrow(meta_ind)-1)) {
+      ## [[KZL: if k is larger than the number of case or controls, just compare everyone to everyone else]]
+      for (j_a in 1:(nrow(meta_ind)-1)) { 
         res_a <- res_ig[[j_a]]
         
         for (j_b in (j_a+1):nrow(meta_ind)) {
@@ -203,6 +204,9 @@ was2code_dist <-
       }
       dist_array1
     }
+    
+    ## [[KZL: Else, compare each person j_a to k cases and to k controls. Leave all other values of dist_array as NA]]
+    
     names(dist_array_list) <- gene_ids
     
     return(dist_array_list)
