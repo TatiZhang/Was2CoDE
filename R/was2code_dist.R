@@ -268,7 +268,7 @@ was2code_dist <-
       dist_array_list <- vector("list", length = n_gene)
       for(i_g in 1:n_gene){
         if(verbose > 4) print("asdf")
-        if(verbose > 4) print("Iteration: ", i_g)
+        if(verbose > 4) print(paste0("Iteration: ", i_g))
         res_ig <- dat_res[[i_g]]
         dist_array1 <- array(NA, 
                              dim = c(rep(nrow(meta_ind), 2), 4),
@@ -279,13 +279,19 @@ was2code_dist <-
         for(kk in 1:4) diag(dist_array1[,,kk]) <- 0
         
         for (j_a in 1:nrow(meta_ind)) {
+          if(verbose > 4) print(paste0("Currently working on: j_a=", j_a))
           id_a <- meta_ind$individual[j_a]
           label_a <- group_labels[j_a]
+          if(verbose > 4) print(paste0("label_a is: ", label_a))
           
           # Determine comparison group (opposite label)
           opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
+          if(verbose > 4) print(paste0("opp_goup is: ", opp_group))
+          
           opp_inds <- meta_ind$individual[group_labels == opp_group]
           j_b_candidates <- match(opp_inds, meta_ind$individual)
+          
+          if(verbose > 4) print(paste0("j_b_candidates are: ", paste0(j_b_candidates, collapse = ", ")))
           
           if (!is.null(k) && length(j_b_candidates) > k) {
             j_b_candidates <- sample(j_b_candidates, k)
@@ -294,6 +300,8 @@ was2code_dist <-
           ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
           
           for (j_b in j_b_candidates) {
+            if(verbose > 4) print(paste0("Comparing j_a to: j_b=", j_b))
+            if(verbose > 4) print(paste0("j_b is NA: ", is.na(j_b)))
             if (j_b == j_a || is.na(j_b)) next
             
             res_a <- res_ig[[j_a]]
