@@ -19,8 +19,9 @@ was2code_dist <-
            var_per_cell, 
            var2test,
            ncores = 2,
-           k = NULL) { #[[KZL: Add a new parameter "k" which controls how many case or controls each person is compared to]]
-  
+           k = NULL,
+           verbose = 0) { 
+    
     if(!(is.data.frame(meta_cell))){
       stop("meta_cell should be a data.frame\n")
     }
@@ -112,6 +113,12 @@ was2code_dist <-
       stop("col names of count_matrix (cell ids) are not unique\n")
     }
     
+    if(any(!c("cell_id", "individual") %in% colnames(meta_cell)))
+      stop("cell_id and individual must be column names in meta_cell\n")
+    
+    if(any(!c(var2test, "individual") %in% colnames(meta_ind)))
+      stop("var2test and individual must be column names in meta_ind\n")
+    
     message(sprintf("the count_matrix includes %d genes in %d cells\n", 
                     n_gene, n_cell))
     
@@ -185,8 +192,17 @@ was2code_dist <-
         res_ig[[j]] <- lm_j$resid + base_j
       }
       names(res_ig) <- as.character(meta_ind$individual)
+      
       res_ig
     }
+    
+    if(verbose > 0){
+      for(j in 1:length(dat_res[[1]])){
+        print(paste0("Residual for donor ", j, " is: ", 
+                     paste0(head(dat_res[[1]][[j]], collapse = ","))))
+      }
+    }
+    
     
     # Add group labels (e.g., case vs control)
     group_labels <- meta_ind[[var2test]]
@@ -221,6 +237,8 @@ was2code_dist <-
           set.seed(j_a)  # for reproducibility
           j_b_candidates <- sample(j_b_candidates, k)
         }
+        
+        ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
         
         for (j_b in j_b_candidates) {
           if (j_b == j_a || is.na(j_b)) next

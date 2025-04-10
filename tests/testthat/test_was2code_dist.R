@@ -200,3 +200,74 @@ test_that("was2code_dist runs faster with multiple cores", {
     message("Parallel version ran faster.")
   }
 })
+
+test_that("was2code_dist runs with k=NULL", {
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  
+  # make new donors
+  meta_ind2 <- meta_ind
+  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
+  meta_ind2 <- rbind(meta_ind,
+                     meta_ind2)
+  meta_ind2$individual <- droplevels(meta_ind2$individual)
+  
+  # assign cells to the new donors
+  pt_id_vec <- as.character(meta_cell$Pt_ID)
+  for(i in 1:length(pt_id_vec)){
+    bool_val <- sample(c(TRUE, FALSE), size = 1)
+    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
+  }
+  meta_cell$individual <- factor(pt_id_vec)
+  
+  result_res <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1,
+    k = NULL
+  )
+  
+  expect_true(all(!is.na(result_res[[1]][,,1])))
+})
+
+test_that("was2code_dist runs with k is a small positive number", {
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  
+  # make new donors
+  meta_ind2 <- meta_ind
+  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
+  meta_ind2 <- rbind(meta_ind,
+                     meta_ind2)
+  meta_ind2$individual <- droplevels(meta_ind2$individual)
+  
+  # assign cells to the new donors
+  pt_id_vec <- as.character(meta_cell$Pt_ID)
+  for(i in 1:length(pt_id_vec)){
+    bool_val <- sample(c(TRUE, FALSE), size = 1)
+    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
+  }
+  meta_cell$individual <- factor(pt_id_vec)
+  
+  result_res <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1,
+    k = 1
+  )
+  
+  bool_vec <- sapply(1:nrow(meta_ind2), function(i){
+    length(which(!is.na(result_res[[1]][,,1]))) >= 3 
+    # there should be a 0 on the diagonal, 
+    # and each person is compared to 2 other people (1 case, 1 control)
+  })
+  expect_true(all(bool_vec))
+})
+
+
