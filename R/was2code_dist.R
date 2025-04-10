@@ -214,47 +214,100 @@ was2code_dist <-
     case_inds <- meta_ind$individual[group_labels == group_levels[1]]
     control_inds <- meta_ind$individual[group_labels == group_levels[2]]
     
-    dist_array_list <- foreach::foreach(i_g = 1:n_gene) %dorng% {
-      res_ig <- dat_res[[i_g]]
-      dist_array1 <- array(NA, 
-                           dim = c(rep(nrow(meta_ind), 2), 4),
-                           dimnames = list(meta_ind$individual, 
-                                           meta_ind$individual,
-                                           c("was2", "location", "size", "shape")))
-      
-      for(kk in 1:4) diag(dist_array1[,,kk]) <- 0
-      
-      for (j_a in 1:nrow(meta_ind)) {
-        id_a <- meta_ind$individual[j_a]
-        label_a <- group_labels[j_a]
+    # This is the version that can be parallelized
+    if(ncores > 1) {
+      dist_array_list <- foreach::foreach(i_g = 1:n_gene) %dorng% {
+        res_ig <- dat_res[[i_g]]
+        dist_array1 <- array(NA, 
+                             dim = c(rep(nrow(meta_ind), 2), 4),
+                             dimnames = list(meta_ind$individual, 
+                                             meta_ind$individual,
+                                             c("was2", "location", "size", "shape")))
         
-        # Determine comparison group (opposite label)
-        opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
-        opp_inds <- meta_ind$individual[group_labels == opp_group]
-        j_b_candidates <- match(opp_inds, meta_ind$individual)
+        for(kk in 1:4) diag(dist_array1[,,kk]) <- 0
         
-        if (!is.null(k) && length(j_b_candidates) > k) {
-          set.seed(j_a)  # for reproducibility
-          j_b_candidates <- sample(j_b_candidates, k)
+        for (j_a in 1:nrow(meta_ind)) {
+          id_a <- meta_ind$individual[j_a]
+          label_a <- group_labels[j_a]
+          
+          # Determine comparison group (opposite label)
+          opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
+          opp_inds <- meta_ind$individual[group_labels == opp_group]
+          j_b_candidates <- match(opp_inds, meta_ind$individual)
+          
+          if (!is.null(k) && length(j_b_candidates) > k) {
+            set.seed(j_a)  # for reproducibility
+            j_b_candidates <- sample(j_b_candidates, k)
+          }
+          
+          ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
+          
+          for (j_b in j_b_candidates) {
+            if (j_b == j_a || is.na(j_b)) next
+            
+            res_a <- res_ig[[j_a]]
+            res_b <- res_ig[[j_b]]
+            
+            dist_array1[j_a, j_b,] <- tryCatch(
+              divergence(res_a, res_b),
+              error = function(e) { rep(NA, 4) }
+            )
+            
+            dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
+          }
         }
-        
-        ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
-        
-        for (j_b in j_b_candidates) {
-          if (j_b == j_a || is.na(j_b)) next
-          
-          res_a <- res_ig[[j_a]]
-          res_b <- res_ig[[j_b]]
-          
-          dist_array1[j_a, j_b,] <- tryCatch(
-            divergence(res_a, res_b),
-            error = function(e) { rep(NA, 4) }
-          )
-          
-          dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
-        }
+        dist_array1
       }
-      dist_array1
+    } else {
+      # this is the single-core version that is purely for debugging purposes
+      dist_array_list <- lapply(1:n_gene, function(i_g){
+        res_ig <- dat_res[[i_g]]
+        dist_array1 <- array(NA, 
+                             dim = c(rep(nrow(meta_ind), 2), 4),
+                             dimnames = list(meta_ind$individual, 
+                                             meta_ind$individual,
+                                             c("was2", "location", "size", "shape")))
+        
+        for(kk in 1:4) diag(dist_array1[,,kk]) <- 0
+        
+        for (j_a in 1:nrow(meta_ind)) {
+          id_a <- meta_ind$individual[j_a]
+          label_a <- group_labels[j_a]
+          
+          # Determine comparison group (opposite label)
+          opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
+          opp_inds <- meta_ind$individual[group_labels == opp_group]
+          j_b_candidates <- match(opp_inds, meta_ind$individual)
+          
+          if (!is.null(k) && length(j_b_candidates) > k) {
+            set.seed(j_a)  # for reproducibility
+            j_b_candidates <- sample(j_b_candidates, k)
+          }
+          
+          ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
+          
+          for (j_b in j_b_candidates) {
+            if (j_b == j_a || is.na(j_b)) next
+            
+            res_a <- res_ig[[j_a]]
+            res_b <- res_ig[[j_b]]
+            
+            if(verbose > 0){
+              print(paste0("j_a is: ", j_a, ": j_b is: ", j_b))
+              print(paste0("head of res_a: ", paste0(head(res_a), collapse = ", ")))
+              print(paste0("head of res_b: ", paste0(head(res_b), collapse = ", ")))
+            }
+            
+            dist_array1[j_a, j_b,] <- tryCatch(
+              divergence(res_a, res_b, verbose = verbose),
+              error = function(e) { rep(NA, 4) }
+            )
+            
+            dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
+          }
+        }
+        dist_array1
+      })
     }
     
     names(dist_array_list) <- gene_ids
