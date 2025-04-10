@@ -251,7 +251,7 @@ was2code_dist <-
             res_b <- res_ig[[j_b]]
             
             dist_array1[j_a, j_b,] <- tryCatch(
-              divergence(res_a, res_b),
+              divergence(res_a, res_b, verbose = verbose),
               error = function(e) { rep(NA, 4) }
             )
             
@@ -264,7 +264,8 @@ was2code_dist <-
       if(verbose > 1) print("Starting the single-core version")
       
       # this is the single-core version that is purely for debugging purposes
-      dist_array_list <- lapply(1:n_gene, function(i_g){
+      dist_array_list <- vector("list", length = n_gene)
+      for(i_g in 1:n_gene){
         res_ig <- dat_res[[i_g]]
         dist_array1 <- array(NA, 
                              dim = c(rep(nrow(meta_ind), 2), 4),
@@ -311,7 +312,7 @@ was2code_dist <-
           }
         }
         dist_array1
-      })
+      }
     }
     
     names(dist_array_list) <- gene_ids
