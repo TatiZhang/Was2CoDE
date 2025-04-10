@@ -21,6 +21,7 @@ was2code_dist <-
            ncores = 2,
            k = NULL,
            verbose = 0) { 
+    set.seed(0)
     
     if(!(is.data.frame(meta_cell))){
       stop("meta_cell should be a data.frame\n")
@@ -266,6 +267,8 @@ was2code_dist <-
       # this is the single-core version that is purely for debugging purposes
       dist_array_list <- vector("list", length = n_gene)
       for(i_g in 1:n_gene){
+        if(verbose > 4) print("asdf")
+        if(verbose > 4) print("Iteration: ", i_g)
         res_ig <- dat_res[[i_g]]
         dist_array1 <- array(NA, 
                              dim = c(rep(nrow(meta_ind), 2), 4),
@@ -285,7 +288,6 @@ was2code_dist <-
           j_b_candidates <- match(opp_inds, meta_ind$individual)
           
           if (!is.null(k) && length(j_b_candidates) > k) {
-            set.seed(j_a)  # for reproducibility
             j_b_candidates <- sample(j_b_candidates, k)
           }
           
@@ -309,11 +311,14 @@ was2code_dist <-
             )
             
             dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
+            if(verbose > 4) print("Completing")
           }
         }
         dist_array1
       }
     }
+    
+    if(verbose > 4) print("Finishing")
     
     names(dist_array_list) <- gene_ids
     return(dist_array_list)
