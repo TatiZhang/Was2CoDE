@@ -215,7 +215,9 @@ was2code_dist <-
     control_inds <- meta_ind$individual[group_labels == group_levels[2]]
     
     # This is the version that can be parallelized
+    if(verbose > 1) print("About to start computing divergences")
     if(ncores > 1) {
+      if(verbose > 1) print("Starting the parallelized version")
       dist_array_list <- foreach::foreach(i_g = 1:n_gene) %dorng% {
         res_ig <- dat_res[[i_g]]
         dist_array1 <- array(NA, 
@@ -259,6 +261,8 @@ was2code_dist <-
         dist_array1
       }
     } else {
+      if(verbose > 1) print("Starting the single-core version")
+      
       # this is the single-core version that is purely for debugging purposes
       dist_array_list <- lapply(1:n_gene, function(i_g){
         res_ig <- dat_res[[i_g]]

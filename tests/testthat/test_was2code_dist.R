@@ -268,6 +268,24 @@ test_that("was2code_dist runs with k is a small positive number", {
     # and each person is compared to 2 other people (1 case, 1 control)
   })
   expect_true(all(bool_vec))
+  
+  # it also works for ncores=2
+  result_res <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 2,
+    k = 1
+  )
+  
+  bool_vec <- sapply(1:nrow(meta_ind2), function(i){
+    length(which(!is.na(result_res[[1]][,,1]))) >= 3 
+    # there should be a 0 on the diagonal, 
+    # and each person is compared to 2 other people (1 case, 1 control)
+  })
+  expect_true(all(bool_vec))
 })
 
 
