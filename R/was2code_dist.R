@@ -69,7 +69,6 @@ was2code_dist <-
     doParallel::registerDoParallel(cl)
     on.exit(parallel::stopCluster(cl), add = TRUE)
     
-    # Rest of your function code remains the same
     if(!(is.data.frame(meta_cell))){
       stop("meta_cell should be a data.frame\n")
     }
@@ -119,6 +118,11 @@ was2code_dist <-
     
     if(any(!c(var2test, "individual") %in% colnames(meta_ind)))
       stop("var2test and individual must be column names in meta_ind\n")
+    
+    if(!is.factor(meta_ind[,var2test])){
+      message(paste0("Converting '", var2test, "' to a factor"))
+      meta_ind[,var2test] <- as.factor(meta_ind[,var2test])
+    }
     
     message(sprintf("the count_matrix includes %d genes in %d cells\n", 
                     n_gene, n_cell))
@@ -206,10 +210,18 @@ was2code_dist <-
     
     
     # Add group labels (e.g., case vs control)
-    group_labels <- meta_ind[[var2test]]
-    group_levels <- unique(group_labels)
-    if (length(group_levels) != 2) {
-      stop("The variable for testing must be binary (e.g., case/control).")
+    group_labels <- meta_ind[,var2test]
+    group_levels <- levels(group_labels)
+    if (length(group_levels) < 2) {
+      stop("The variable for testing must have at least two levels.")
+    }
+    
+    message(sprintf("Found %d factor levels in %s: %s", 
+                    length(group_levels), 
+                    var2test, 
+                    paste(group_levels, collapse=", ")))
+    if (any(!group_levels %in% group_labels)) {
+      stop("The group labels are not set correctly")
     }
     
     case_inds <- meta_ind$individual[group_labels == group_levels[1]]
@@ -233,19 +245,50 @@ was2code_dist <-
           id_a <- meta_ind$individual[j_a]
           label_a <- group_labels[j_a]
           
-          # Determine comparison group (opposite label)
-          opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
-          opp_inds <- meta_ind$individual[group_labels == opp_group]
+          # Determine comparison groups
+          # 1. Within group comparison
+          same_group <- label_a
+          same_inds <- meta_ind$individual[group_labels == same_group]
+          same_inds <- same_inds[same_inds != id_a]  # Exclude self
+          j_a_candidates <- match(same_inds, meta_ind$individual)
+          
+          # 2. Between group comparison - handle multiple levels
+          other_groups <- group_levels[group_levels != label_a]
+          opp_inds <- meta_ind$individual[group_labels %in% other_groups]
           j_b_candidates <- match(opp_inds, meta_ind$individual)
           
-          if (!is.null(k) && length(j_b_candidates) > k) {
-            set.seed(j_a)  # for reproducibility
-            j_b_candidates <- sample(j_b_candidates, k)
+          # Sample if k is specified
+          if (!is.null(k)) {
+            # For opposite group
+            if (length(j_b_candidates) > k) {
+              set.seed(j_a)  # for reproducibility
+              j_b_candidates <- sample(j_b_candidates, k)
+            }
+            
+            # For same group
+            if (length(j_a_candidates) > k) {
+              set.seed(j_a + nrow(meta_ind))  # Different seed for within-group
+              j_a_candidates <- sample(j_a_candidates, k)
+            }
           }
           
-          ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
-          
+          # Process opposite group comparisons
           for (j_b in j_b_candidates) {
+            if (j_b == j_a || is.na(j_b)) next
+            
+            res_a <- res_ig[[j_a]]
+            res_b <- res_ig[[j_b]]
+            
+            dist_array1[j_a, j_b,] <- tryCatch(
+              divergence(res_a, res_b, verbose = verbose),
+              error = function(e) { rep(NA, 4) }
+            )
+            
+            dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
+          }
+          
+          # Process within-group comparisons
+          for (j_b in j_a_candidates) {
             if (j_b == j_a || is.na(j_b)) next
             
             res_a <- res_ig[[j_a]]
@@ -284,23 +327,43 @@ was2code_dist <-
           label_a <- group_labels[j_a]
           if(verbose > 4) print(paste0("label_a is: ", label_a))
           
-          # Determine comparison group (opposite label)
-          opp_group <- ifelse(label_a == group_levels[1], group_levels[2], group_levels[1])
-          if(verbose > 4) print(paste0("opp_goup is: ", opp_group))
+          # Determine comparison groups
+          # 1. Within group comparison
+          same_group <- label_a
+          same_inds <- meta_ind$individual[group_labels == same_group]
+          same_inds <- same_inds[same_inds != id_a]  # Exclude self
+          j_a_candidates <- match(same_inds, meta_ind$individual)
           
-          opp_inds <- meta_ind$individual[group_labels == opp_group]
+          # 2. Between group comparison - handle multiple levels
+          other_groups <- group_levels[group_levels != label_a]
+          if(verbose > 4) print(paste0("Other groups are: ", paste(other_groups, collapse = ", ")))
+          
+          opp_inds <- meta_ind$individual[group_labels %in% other_groups]
           j_b_candidates <- match(opp_inds, meta_ind$individual)
           
-          if(verbose > 4) print(paste0("j_b_candidates are: ", paste0(j_b_candidates, collapse = ", ")))
-          
-          if (!is.null(k) && length(j_b_candidates) > k) {
-            j_b_candidates <- sample(j_b_candidates, k)
+          if(verbose > 4) {
+            print(paste0("j_b_candidates are: ", paste0(j_b_candidates, collapse = ", ")))
+            print(paste0("Length of j_b_candidates: ", length(j_b_candidates)))
+            print(paste0("j_a_candidates are: ", paste0(j_a_candidates, collapse = ", ")))
+            print(paste0("Length of j_a_candidates: ", length(j_a_candidates)))
           }
           
-          ## [[KZL: Make sure to set j_a_candidates (the people in the same group as j_a)]]
+          # Sample if k is specified
+          if (!is.null(k)) {
+            # For opposite group
+            if (length(j_b_candidates) > k) {
+              j_b_candidates <- sample(j_b_candidates, k)
+            }
+            
+            # For same group
+            if (length(j_a_candidates) > k) {
+              j_a_candidates <- sample(j_a_candidates, k)
+            }
+          }
           
+          # Process opposite group comparisons
           for (j_b in j_b_candidates) {
-            if(verbose > 4) print(paste0("Comparing j_a to: j_b=", j_b))
+            if(verbose > 4) print(paste0("Comparing j_a to opposite group: j_b=", j_b))
             if(verbose > 4) print(paste0("j_b is NA: ", is.na(j_b)))
             if (j_b == j_a || is.na(j_b)) next
             
@@ -308,7 +371,7 @@ was2code_dist <-
             res_b <- res_ig[[j_b]]
             
             if(verbose > 0){
-              print(paste0("j_a is: ", j_a, ": j_b is: ", j_b))
+              print(paste0("Between-group comparison: j_a is: ", j_a, ": j_b is: ", j_b))
               print(paste0("head of res_a: ", paste0(head(res_a), collapse = ", ")))
               print(paste0("head of res_b: ", paste0(head(res_b), collapse = ", ")))
             }
@@ -319,15 +382,38 @@ was2code_dist <-
             )
             
             dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
-            if(verbose > 4) print("Completing")
+            if(verbose > 4) print("Completing opposite group comparison")
+          }
+          
+          # Process within-group comparisons
+          for (j_b in j_a_candidates) {
+            if(verbose > 4) print(paste0("Comparing j_a to within group: j_b=", j_b))
+            if (j_b == j_a || is.na(j_b)) next
+            
+            res_a <- res_ig[[j_a]]
+            res_b <- res_ig[[j_b]]
+            
+            if(verbose > 0){
+              print(paste0("Within-group comparison: j_a is: ", j_a, ": j_b is: ", j_b))
+              print(paste0("head of res_a: ", paste0(head(res_a), collapse = ", ")))
+              print(paste0("head of res_b: ", paste0(head(res_b), collapse = ", ")))
+            }
+            
+            dist_array1[j_a, j_b,] <- tryCatch(
+              divergence(res_a, res_b, verbose = verbose),
+              error = function(e) { rep(NA, 4) }
+            )
+            
+            dist_array1[j_b, j_a,] <- dist_array1[j_a, j_b,] * c(1, -1, -1, 1)
+            if(verbose > 4) print("Completing within-group comparison")
           }
         }
-        dist_array1
+        dist_array_list[[i_g]] <- dist_array1
       }
     }
     
     if(verbose > 4) print("Finishing")
-    
+
     names(dist_array_list) <- gene_ids
     return(dist_array_list)
   }

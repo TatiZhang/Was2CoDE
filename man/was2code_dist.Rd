@@ -11,7 +11,8 @@ was2code_dist(
   var_per_cell,
   var2test,
   ncores = 2,
-  k = NULL
+  k = NULL,
+  verbose = 0
 )
 }
 \arguments{

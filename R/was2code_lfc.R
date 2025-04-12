@@ -13,9 +13,11 @@ was2code_lfc <- function(dist_list, case_idx, control_idx) {
   rownames(lfc_mat) <- names(dist_list)
   colnames(lfc_mat) <- dist_components
   
+  # Loop over genes
   for (j in seq_along(dist_list)) {
     dist_gene <- dist_list[[j]]
     
+    # loop over components
     for (comp_idx in seq_along(dist_components)) {
       comp <- dist_components[comp_idx]
       tmp <- dist_gene[,,comp]
@@ -29,7 +31,7 @@ was2code_lfc <- function(dist_list, case_idx, control_idx) {
       sd2_adj <- sd2 / sqrt(length(control_idx))
       denominator <- sqrt(sd1_adj^2 + sd2_adj^2)
       
-      # New: Avoid division by 0 or NA
+      #  Avoid division by 0 or NA
       if (is.finite(numerator) && is.finite(denominator) && denominator > 0) {
         lfc_mat[j, comp_idx] <- numerator / denominator
       } else {

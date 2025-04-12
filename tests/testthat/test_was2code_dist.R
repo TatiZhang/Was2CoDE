@@ -152,6 +152,21 @@ test_that("was2code_dist outputs correctly", {
 # Stop parallel backend after tests
 stopCluster(cl)
 
+test_that("was2code_dist outputs correctly", {
+  # Transform counts for testing
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  meta_ind[,"Study_DesignationCtrl"] <- factor(meta_ind[,"Study_DesignationCtrl"])
+  
+  # Run the function
+  output <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl"
+  )
+})
+
 test_that("was2code_dist runs faster with multiple cores", {
   set.seed(42)
   count_matrix_count <- pmin(round(exp(count_matrix)), 10)

@@ -4,7 +4,7 @@
 \alias{divergence}
 \title{define divergence() using wasserstein1d()}
 \usage{
-divergence(a, b, p = 2)
+divergence(a, b, p = 2, verbose = 0)
 }
 \arguments{
 \item{a}{Numeric (gene expressions) vector.}
