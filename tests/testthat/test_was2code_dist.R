@@ -5,7 +5,7 @@ library(data.table)
 library(doRNG)
 library(doParallel)
 # Register parallel backend
-cl <- makeCluster(detectCores() - 1)  # Use available cores
+cl <- makeCluster(min(2, detectCores() - 1))
 registerDoParallel(cl)
 # Load test data
 load("../assets/test_data1.RData")
@@ -151,3 +151,156 @@ test_that("was2code_dist outputs correctly", {
 
 # Stop parallel backend after tests
 stopCluster(cl)
+
+test_that("was2code_dist outputs correctly", {
+  # Transform counts for testing
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  meta_ind[,"Study_DesignationCtrl"] <- factor(meta_ind[,"Study_DesignationCtrl"])
+  
+  # Run the function
+  output <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl"
+  )
+})
+
+test_that("was2code_dist runs faster with multiple cores", {
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  # Subset to a larger number of genes to increase runtime
+  genes_to_test <- seq_len(min(200, nrow(count_matrix_count)))
+
+  count_matrix_large <- count_matrix_count[rep(1:5, each = 40), ]
+  rownames(count_matrix_large) <- paste0("g", 1:nrow(count_matrix_large))
+  
+  # Single-core
+  t1_start <- Sys.time()
+  result_single_core <- was2code_dist(
+    count_input = count_matrix_large,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1
+  )
+  t1_end <- Sys.time()
+  time_single_core <- t1_end - t1_start
+  print(paste("Single-core time:", time_single_core))
+  
+  # Multi-core
+  t2_start <- Sys.time()
+  result_multi_core <- was2code_dist(
+    count_input = count_matrix_large,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 2
+  )
+  t2_end <- Sys.time()
+  time_multi_core <- t2_end - t2_start
+  print(paste("Multi-core time:", time_multi_core))
+  
+  # Basic sanity check
+  expect_true(length(result_single_core) == length(result_multi_core),
+              info = "Results should have the same number of genes.")
+  
+  # Optional: Add a message if parallelization worked
+  if (as.numeric(time_multi_core, units = "secs") >= as.numeric(time_single_core, units = "secs")) {
+    warning("Parallel version did not run faster. Consider increasing dataset size for clearer speedup.")
+  } else {
+    message("Parallel version ran faster.")
+  }
+})
+
+test_that("was2code_dist runs with k=NULL", {
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  
+  # make new donors
+  meta_ind2 <- meta_ind
+  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
+  meta_ind2 <- rbind(meta_ind,
+                     meta_ind2)
+  meta_ind2$individual <- droplevels(meta_ind2$individual)
+  
+  # assign cells to the new donors
+  pt_id_vec <- as.character(meta_cell$Pt_ID)
+  for(i in 1:length(pt_id_vec)){
+    bool_val <- sample(c(TRUE, FALSE), size = 1)
+    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
+  }
+  meta_cell$individual <- factor(pt_id_vec)
+  
+  result_res <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1,
+    k = NULL
+  )
+  
+  expect_true(all(!is.na(result_res[[1]][,,1])))
+})
+
+test_that("was2code_dist runs with k is a small positive number", {
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  
+  # make new donors
+  meta_ind2 <- meta_ind
+  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
+  meta_ind2 <- rbind(meta_ind,
+                     meta_ind2)
+  meta_ind2$individual <- droplevels(meta_ind2$individual)
+  
+  # assign cells to the new donors
+  pt_id_vec <- as.character(meta_cell$Pt_ID)
+  for(i in 1:length(pt_id_vec)){
+    bool_val <- sample(c(TRUE, FALSE), size = 1)
+    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
+  }
+  meta_cell$individual <- factor(pt_id_vec)
+  
+  result_res <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1,
+    k = 1
+  )
+  
+  bool_vec <- sapply(1:nrow(meta_ind2), function(i){
+    length(which(!is.na(result_res[[1]][,,1]))) >= 3 
+    # there should be a 0 on the diagonal, 
+    # and each person is compared to 2 other people (1 case, 1 control)
+  })
+  expect_true(all(bool_vec))
+  
+  # it also works for ncores=2
+  result_res <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 2,
+    k = 1
+  )
+  
+  bool_vec <- sapply(1:nrow(meta_ind2), function(i){
+    length(which(!is.na(result_res[[1]][,,1]))) >= 3 
+    # there should be a 0 on the diagonal, 
+    # and each person is compared to 2 other people (1 case, 1 control)
+  })
+  expect_true(all(bool_vec))
+})
+
+

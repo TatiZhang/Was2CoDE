@@ -22,7 +22,7 @@ A data frame with 942 rows (genes) and 9 columns:
 }
 }
 \source{
-\url{https://www.sciencedirect.com/science/article/pii/S0092867423009716}
+\url{https://www.nature.com/articles/s43587-023-00424-y}
 }
 \usage{
 microglia_prater_df

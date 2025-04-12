@@ -74,8 +74,8 @@ was2code_permanova <- function(dist_list,
       .calc_F_manova(dist_array, label = perm1)
     })
   } else {
-    fm1 <- as.formula(paste("~", paste(var2adjust, collapse=" + ")))
-    z <- model.matrix(fm1, data = meta_ind)
+    fm1 <- stats::as.formula(paste("~", paste(var2adjust, collapse=" + ")))
+    z <- stats::model.matrix(fm1, data = meta_ind)
     
     if(residulize_x){
       resid_perm <- matrix(NA, nrow(meta_ind), n_perm)
@@ -88,7 +88,7 @@ was2code_permanova <- function(dist_list,
       # step2: permutation
       ip <- 0 # index for usable permutations
       id <- 0 # working index
-      sd_e <- sd(resid_x) # expected sd
+      sd_e <- stats::sd(resid_x) # expected sd
       
       while(ip < n_perm){
         if(verbose == 1 && ip %% floor(n_perm/10) == 0) cat('*')
@@ -103,7 +103,7 @@ was2code_permanova <- function(dist_list,
         
         if(! is.null(m2)){
           resid_p_i <- perm_x - fitted(m2) 
-          sd_resid_i <- sd(resid_p_i)
+          sd_resid_i <- stats::sd(resid_p_i)
           
           if(sd_resid_i > (1-delta)*sd_e & sd_resid_i < (1+delta)*sd_e){
             ip <- ip + 1
@@ -217,7 +217,7 @@ was2code_permanova <- function(dist_list,
     } 
     
     i <- 0
-    F_stats <- foreach (i = 1:ncol(Rs), .combine='cbind') %dorng% {
+    F_stats <- foreach::foreach (i = 1:ncol(Rs), .combine='cbind') %dorng% {
       
       if(is.null(z)){
         xz <- Rs[,i]

@@ -7,11 +7,11 @@
 arrange_genes_by_donors(count_matrix, meta_ind, meta_cell)
 }
 \arguments{
-\item{count_matrix}{}
+\item{count_matrix}{A matrix with gene expression data (genes as rows, cells as columns)}
 
-\item{meta_ind}{}
+\item{meta_ind}{A data frame with individual/donor metadata}
 
-\item{meta_cell}{}
+\item{meta_cell}{A data frame with cell metadata}
 }
 \value{
 dat_res, which is a list (of genes) of lists (of donors)
