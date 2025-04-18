@@ -78,7 +78,7 @@ was2code_permanova <- function(dist_list,
     z <- stats::model.matrix(fm1, data = meta_ind)
     
     if(residulize_x){
-      resid_perm <- matrix(NA, nrow(meta_ind), n_perm)
+      resid_perm <- matrix(NA_real_, nrow(meta_ind), n_perm)
       
       # step1: fit
       m1 <- stats::glm(x ~ -1 + z, family = stats::binomial(link="logit"))  # logistic model
@@ -146,7 +146,7 @@ was2code_permanova <- function(dist_list,
   donor_vec <- dimnames(dist_list[[1]])[[1]]
   
   ndonors <- dim(dist_list[[1]])[1]
-  dist_array <- array(NA, 
+  dist_array <- array(NA_real_, 
                       dim = c(length(gene_vec), length(donor_vec), length(donor_vec)),
                       dimnames = list(gene_vec, 
                                       donor_vec,
