@@ -154,3 +154,110 @@ test_that("was2code_permanova function works correctly", {
     "variable to test has NA values"
   )
 })
+
+test_that("was2code_permanova detects group differences when signal is strong", {
+  set.seed(456)
+  n_samples <- 10
+  n_genes <- 3
+  
+  # Create clear group separation
+  individuals <- paste0("ind", 1:n_samples)
+  group <- c(rep(0, n_samples / 2), rep(1, n_samples / 2))
+  meta_ind <- data.frame(
+    individual = individuals,
+    group = group
+  )
+  
+  dist_list <- list()
+  for (i in 1:n_genes) {
+    dist_mat <- array(0, dim = c(n_samples, n_samples, 1))
+    dimnames(dist_mat) <- list(individuals, individuals, "was2")
+    
+    for (j in 1:n_samples) {
+      for (k in j:n_samples) {
+        # Within group = low distance; between group = high distance
+        if (group[j] == group[k]) {
+          dist <- abs(rnorm(1, mean = 0.1, sd = 0.01))  # tight within-group distances
+        } else {
+          dist <- abs(rnorm(1, mean = 5, sd = 0.5))      # much larger between-group distances
+        }
+        dist_mat[j, k, "was2"] <- dist_mat[k, j, "was2"] <- dist
+      }
+    }
+    
+    gene_name <- paste0("gene", i)
+    dist_list[[gene_name]] <- dist_mat
+  }
+  names(dist_list) <- paste0("gene", 1:n_genes)
+  
+  # Run PERMANOVA
+  result_power <- was2code_permanova(
+    dist_list = dist_list,
+    meta_ind = meta_ind,
+    var2test = "group",
+    n_perm = 99
+  )
+  
+  expect_equal(length(result_power), n_genes)
+  expect_true(all(result_power >= 0 & result_power <= 1))
+  expect_true(all(result_power <= 0.01))  # should have strong signal
+})
+
+test_that("p-value distribution is uniform under null and non-uniform under alternative", {
+  set.seed(789)
+  n_trials <- 100
+  n_samples <- 10
+  individuals <- paste0("ind", 1:n_samples)
+  group <- c(rep(0, n_samples / 2), rep(1, n_samples / 2))
+  
+  simulate_dist_list <- function(with_group_effect = TRUE) {
+    dist_mat <- array(0, dim = c(n_samples, n_samples, 1))
+    dimnames(dist_mat) <- list(individuals, individuals, "was2")
+    
+    for (j in 1:n_samples) {
+      for (k in j:n_samples) {
+        if (with_group_effect) {
+          dist <- if (group[j] == group[k]) {
+            abs(rnorm(1, mean = 0.1, sd = 0.01))
+          } else {
+            abs(rnorm(1, mean = 5, sd = 0.5))
+          }
+        } else {
+          dist <- abs(rnorm(1, mean = 2.0, sd = 0.5))  # same distribution for all
+        }
+        dist_mat[j, k, "was2"] <- dist_mat[k, j, "was2"] <- dist
+      }
+    }
+    
+    list(gene1 = dist_mat,
+         gene2 = dist_mat)
+  }
+  
+  get_pvals <- function(with_group_effect) {
+    replicate(n_trials, {
+      dist_list <- simulate_dist_list(with_group_effect)
+      meta_ind <- data.frame(individual = individuals, group = group)
+      
+      pval <- was2code_permanova(
+        dist_list = dist_list,
+        meta_ind = meta_ind,
+        var2test = "group",
+        n_perm = 99
+      )
+      pval[1]
+    })
+  }
+  
+  alt_pvals <- get_pvals(TRUE)
+  null_pvals <- get_pvals(FALSE)
+  
+  # Perform Kolmogorov-Smirnov test against uniform(0,1)
+  ks_alt <- suppressWarnings(ks.test(alt_pvals, "punif")$statistic)
+  ks_null <- suppressWarnings(ks.test(null_pvals, "punif")$statistic)
+  
+  expect_true(mean(alt_pvals < 0.05) > 0.8)  # should have high power
+  expect_true(mean(null_pvals < 0.05) < 0.2) # should not reject often under null
+  expect_true(ks_null < ks_alt)              # null p-values are more uniform
+})
+
+
