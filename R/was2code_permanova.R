@@ -70,9 +70,11 @@ was2code_permanova <- function(dist_list,
   # if there is no cavariate, use standard permanova
   if(is.null(var2adjust)){
     F_ob <- .calc_F_manova(dist_array, label = x)
-    F_perm <- apply(x_perm, 2, function(perm1){ 
+    F_perm_list <- apply(x_perm, 2, function(perm1){ 
       .calc_F_manova(dist_array, label = perm1)
-    })
+    }, simplify = FALSE)
+    F_perm <- do.call(cbind, F_perm_list)
+    
   } else {
     fm1 <- stats::as.formula(paste("~", paste(var2adjust, collapse=" + ")))
     z <- stats::model.matrix(fm1, data = meta_ind)
