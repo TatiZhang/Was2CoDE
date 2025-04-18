@@ -58,21 +58,24 @@ was2code_permanova_na <- function(dist_list,
                        warning = function(w) { NULL }, 
                        error = function(e) { NULL})
         
-        r_i <- p - fitted(glm_p)
-        if (abs(sd(r_i) - sd(r_x)) < delta * sd(r_x)) {
-          ip <- ip + 1
-          r_perm[, ip] <- r_i
+        if(! is.null(m2)){
+          resid_p_i <- perm_x - fitted(m2) 
+          sd_resid_i <- stats::sd(resid_p_i)
+          
+          if(sd_resid_i > (1-delta)*sd_e & sd_resid_i < (1+delta)*sd_e){
+            ip <- ip + 1
+            resid_perm[,ip] <- resid_p_i
+          }
         }
       }
       
-      F_tmp <- .calc_F_permanovaSZ_na(dist_array, cbind(r_x, r_perm), Z)
-      F_ob   <- F_tmp[, 1]
-      F_perm <- F_tmp[, -1, drop = FALSE]
+      resid_x <- matrix(resid_x, ncol=1)
+      F_ob <- .calc_F_permanovaSZ_na(dist_array, Rs = resid_x, z = z)
+      F_perm  <- .calc_F_permanovaSZ_na(dist_array, Rs = resid_perm, z = z)
       
     } else {
-      F_tmp <- .calc_F_permanovaSZ_na(dist_array, cbind(x, x_perm), Z)
-      F_ob   <- F_tmp[, 1]
-      F_perm <- F_tmp[, -1, drop = FALSE]
+      F_ob <- .calc_F_permanovaSZ_na(dist_array, Rs = x, z = z)
+      F_perm <- .calc_F_permanovaSZ_na(dist_array, Rs = x_perm, z = z)
     }
   }
   
