@@ -7,6 +7,7 @@ was2code_permanova <- function(dist_list,
                                r_seed = 2020, 
                                residulize_x = FALSE, 
                                delta = 0.5,
+                               ncores = 1,
                                verbose = 0){
   
   # -----------------------------------------------------------------
@@ -40,6 +41,10 @@ was2code_permanova <- function(dist_list,
   if(length(unique(meta_ind$individual)) != nrow(meta_ind)){
     stop("the individual ids in meta_ind are not unique\n")
   }
+  
+  cl <- parallel::makeCluster(ncores)
+  doParallel::registerDoParallel(cl)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   
   # -----------------------------------------------------------------
   # check the var2test

@@ -3,6 +3,8 @@ library(testthat)
 library(Matrix)
 library(foreach)
 library(doRNG)
+cl <- makeCluster(min(2, detectCores() - 1))
+registerDoParallel(cl)
 
 # Register a sequential backend to avoid warnings about missing parallel backend
 registerDoSEQ()
@@ -152,5 +154,78 @@ test_that("was2code_permanova function works correctly", {
       n_perm = 99
     ),
     "variable to test has NA values"
+  )
+})
+
+test_that("was2code_permanova function works correctly on the test case", {
+  load("../assets/test_data1.RData")
+  
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  
+  dist_list <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1,
+    k = NULL
+  )
+  
+  result <- was2code_permanova(
+    dist_list = dist_list,
+    meta_ind = meta_ind,
+    var2test = "Study_DesignationCtrl",
+    var2adjust = "SexM",
+    residulize_x = TRUE,
+    n_perm = 99,
+    delta = 0.5
+  )
+  
+  expect_true(all(result >= 0))
+  expect_true(all(result <= 1))
+  expect_true(length(which(!is.na(result))) == 5)
+})
+
+test_that("was2code_permanova function works correctly with NAs", {
+  load("../assets/test_data1.RData")
+  
+  set.seed(42)
+  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
+  
+  # make new donors
+  meta_ind2 <- meta_ind
+  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
+  meta_ind2 <- rbind(meta_ind,
+                     meta_ind2)
+  meta_ind2$individual <- droplevels(meta_ind2$individual)
+  
+  # assign cells to the new donors
+  pt_id_vec <- as.character(meta_cell$Pt_ID)
+  for(i in 1:length(pt_id_vec)){
+    bool_val <- sample(c(TRUE, FALSE), size = 1)
+    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
+  }
+  meta_cell$individual <- factor(pt_id_vec)
+  
+  dist_list <- was2code_dist(
+    count_input = count_matrix_count,
+    meta_cell = meta_cell,
+    meta_ind = meta_ind2,
+    var_per_cell = var_per_cell,
+    var2test = "Study_DesignationCtrl",
+    ncores = 1,
+    k = 1
+  )
+  
+  result <- was2code_permanova(
+    dist_list = dist_list,
+    meta_ind = meta_ind,
+    var2test = "Study_DesignationCtrl",
+    var2adjust = "SexM",
+    residulize_x = TRUE,
+    n_perm = 99,
+    delta = 0.5
   )
 })
