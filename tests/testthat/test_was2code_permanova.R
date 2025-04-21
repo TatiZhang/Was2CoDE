@@ -221,7 +221,8 @@ test_that("p-value distribution is uniform under null and non-uniform under alte
   individuals <- paste0("ind", 1:n_samples)
   group <- c(rep(0, n_samples / 2), rep(1, n_samples / 2))
   
-  simulate_dist_list <- function(with_group_effect = TRUE) {
+  simulate_dist_list <- function(seed, with_group_effect = TRUE) {
+    set.seed(seed)
     dist_mat <- array(0, dim = c(n_samples, n_samples, 1))
     dimnames(dist_mat) <- list(individuals, individuals, "was2")
     
@@ -240,15 +241,16 @@ test_that("p-value distribution is uniform under null and non-uniform under alte
       }
     }
     
-    list(gene1 = dist_mat,
-         gene2 = dist_mat)
+    list(gene1 = dist_mat)
   }
   
+  # Generate seeds to ensure reproducibility
+  trial_seeds <- sample.int(1000, n_trials)
+  
   get_pvals <- function(with_group_effect) {
-    replicate(n_trials, {
-      dist_list <- simulate_dist_list(with_group_effect)
+    sapply(trial_seeds, function(seed) {
+      dist_list <- simulate_dist_list(seed = seed, with_group_effect = with_group_effect)
       meta_ind <- data.frame(individual = individuals, group = group)
-      
       pval <- was2code_permanova(
         dist_list = dist_list,
         meta_ind = meta_ind,

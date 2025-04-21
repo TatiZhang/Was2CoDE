@@ -165,6 +165,8 @@ test_that("was2code_dist outputs correctly", {
     var_per_cell = var_per_cell,
     var2test = "Study_DesignationCtrl"
   )
+  
+  expect_true(is.list(output))
 })
 
 test_that("was2code_dist runs faster with multiple cores", {

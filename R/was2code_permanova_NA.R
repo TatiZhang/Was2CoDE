@@ -20,15 +20,17 @@ was2code_permanova_na <- function(dist_list,
   
   ## ------- permutations ----------------------------------------------
   set.seed(r_seed)
-  x_perm <- replicate(n_perm, sample(x), simplify = TRUE)
+  x_perm <- matrix(rep(x, times = n_perm), ncol = n_perm)
+  x_perm <- apply(x_perm, 2, sample, size = length(x))
   
   ## ------- choose the NA‑aware helper -------------------------------
   if (is.null(var2adjust)) {
     
     F_ob   <- .calc_F_manova_na(dist_array, x)
-    F_perm <- apply(x_perm, 2, function(col) {
-      .calc_F_manova_na(dist_array, col)
-    })
+    F_perm_list <- apply(x_perm, 2, function(perm1){ 
+      .calc_F_manova_na(dist_array, label = perm1)
+    }, simplify = FALSE)
+    F_perm <- do.call(cbind, F_perm_list)
     
   } else {   # ---------- covariate‑adjusted path ----------------------
     fm1 <- stats::as.formula(paste("~", paste(var2adjust, collapse=" + ")))
