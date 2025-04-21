@@ -75,15 +75,17 @@ was2code_permanova <- function(dist_list,
   # if there is no cavariate, use standard permanova
   if(is.null(var2adjust)){
     F_ob <- .calc_F_manova(dist_array, label = x)
-    F_perm <- apply(x_perm, 2, function(perm1){ 
+    F_perm_list <- apply(x_perm, 2, function(perm1){ 
       .calc_F_manova(dist_array, label = perm1)
-    })
+    }, simplify = FALSE)
+    F_perm <- do.call(cbind, F_perm_list)
+    
   } else {
     fm1 <- stats::as.formula(paste("~", paste(var2adjust, collapse=" + ")))
     z <- stats::model.matrix(fm1, data = meta_ind)
     
     if(residulize_x){
-      resid_perm <- matrix(NA, nrow(meta_ind), n_perm)
+      resid_perm <- matrix(NA_real_, nrow(meta_ind), n_perm)
       
       # step1: fit
       m1 <- stats::glm(x ~ -1 + z, family = stats::binomial(link="logit"))  # logistic model
@@ -151,7 +153,7 @@ was2code_permanova <- function(dist_list,
   donor_vec <- dimnames(dist_list[[1]])[[1]]
   
   ndonors <- dim(dist_list[[1]])[1]
-  dist_array <- array(NA, 
+  dist_array <- array(NA_real_, 
                       dim = c(length(gene_vec), length(donor_vec), length(donor_vec)),
                       dimnames = list(gene_vec, 
                                       donor_vec,
