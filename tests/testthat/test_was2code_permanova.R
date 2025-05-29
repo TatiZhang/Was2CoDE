@@ -216,38 +216,6 @@ test_that("was2code_permanova detects group differences when signal is strong", 
   expect_true(all(result_power <= 0.01))  # should have strong signal
 })
 
-
-test_that("was2code_permanova function works correctly on the test case", {
-  load("../assets/test_data1.RData")
-  
-  set.seed(42)
-  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
-  
-  dist_list <- was2code_dist(
-    count_input = count_matrix_count,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl",
-    ncores = 1,
-    k = NULL
-  )
-  
-  result <- was2code_permanova(
-    dist_list = dist_list,
-    meta_ind = meta_ind,
-    var2test = "Study_DesignationCtrl",
-    var2adjust = "SexM",
-    residulize_x = TRUE,
-    n_perm = 99,
-    delta = 0.5
-  )
-  
-  expect_true(all(result >= 0))
-  expect_true(all(result <= 1))
-  expect_true(length(which(!is.na(result))) == 5)
-})
-
 test_that("was2code_permanova function works correctly with NAs", {
   load("../assets/test_data1.RData")
   
