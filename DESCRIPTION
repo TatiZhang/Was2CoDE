@@ -12,12 +12,12 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 URL: https://tatizhang.github.io/Was2CoDE/
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5)
 Imports: 
     dplyr,
     doRNG,
     doParallel,
-    foreach,,
+    foreach,
     ggplot2, 
     ggrepel,
     Matrix,
