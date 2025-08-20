@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">Was2CoDE</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9017</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,8 +84,19 @@ GitHub:</p>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load the packages</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tatizhang.github.io/Was2CoDE/" class="external-link">Was2CoDE</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tatizhang.github.io/Was2CoDE/" class="external-link">Was2CoDE</a></span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Warning: replacing previous import 'Matrix::cov2cor' by 'stats::cov2cor' when</span></span>
+<span><span class="co">## loading 'Was2CoDE'</span></span></code></pre>
+<pre><code><span><span class="co">## Warning: replacing previous import 'dplyr::lag' by 'stats::lag' when loading</span></span>
+<span><span class="co">## 'Was2CoDE'</span></span></code></pre>
+<pre><code><span><span class="co">## Warning: replacing previous import 'dplyr::filter' by 'stats::filter' when</span></span>
+<span><span class="co">## loading 'Was2CoDE'</span></span></code></pre>
+<pre><code><span><span class="co">## Warning: replacing previous import 'Matrix::toeplitz' by 'stats::toeplitz' when</span></span>
+<span><span class="co">## loading 'Was2CoDE'</span></span></code></pre>
+<pre><code><span><span class="co">## Warning: replacing previous import 'Matrix::update' by 'stats::update' when</span></span>
+<span><span class="co">## loading 'Was2CoDE'</span></span></code></pre>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://renozao.github.io/doRNG/" class="external-link">doRNG</a></span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## Loading required package: foreach</span></span></code></pre>
 <pre><code><span><span class="co">## Loading required package: rngtools</span></span></code></pre>
@@ -93,7 +104,7 @@ GitHub:</p>
 <div class="section level3">
 <h3 id="generate-synthetic-data">Generate Synthetic Data<a class="anchor" aria-label="anchor" href="#generate-synthetic-data"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Number of genes and cells</span></span>
@@ -124,7 +135,7 @@ GitHub:</p>
 <div class="section level3">
 <h3 id="analyze-gene-expression-data">Analyze Gene Expression Data<a class="anchor" aria-label="anchor" href="#analyze-gene-expression-data"></a>
 </h3>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Compute distance metrics</span></span>
 <span><span class="co"># result &lt;- Was2CoDE::was2code_dist(count_input, meta_cell, meta_ind, var_per_cell, var2test)</span></span>
 <span><span class="co"># </span></span>
