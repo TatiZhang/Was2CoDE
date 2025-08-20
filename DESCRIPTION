@@ -1,6 +1,6 @@
 Package: Was2CoDE
 Title: Statistical tool using Was2CoDE method and Was-2 decomposition
-Version: 0.0.0.9017
+Version: 0.0.0.9018
 Authors@R: 
     person("Tati", "Zhang", email = "Wenjiz1@uw.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0007-8949-5933"))
@@ -14,6 +14,7 @@ URL: https://tatizhang.github.io/Was2CoDE/
 Depends: 
     R (>= 3.5)
 Imports: 
+    DESeq2,
     dplyr,
     doRNG,
     doParallel,
