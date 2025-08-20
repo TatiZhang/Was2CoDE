@@ -1,7 +1,4 @@
 context("Test divergence")
-library(testthat)
-library(transport) 
-library(Rcpp) 
 
 test_that("divergence function calculates correct values", {
   set.seed(0)

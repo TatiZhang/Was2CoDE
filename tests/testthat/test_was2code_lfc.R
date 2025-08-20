@@ -1,9 +1,4 @@
 context("Test was2code_lfc")
-library(testthat)
-library(Matrix)
-library(foreach)
-library(doRNG)
-library(data.table) 
 
 # Load test data
 load("../assets/test_data1.RData")

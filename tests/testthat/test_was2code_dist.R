@@ -1,12 +1,9 @@
 context("Test was2code_dist")
-library(testthat)
-library(transport)
-library(data.table)
-library(doRNG)
-library(doParallel)
+
 # Register parallel backend
-cl <- makeCluster(min(2, detectCores() - 1))
-registerDoParallel(cl)
+cl <- parallel::makeCluster(min(2, parallel::detectCores() - 1))
+doParallel::registerDoParallel(cl)
+
 # Load test data
 load("../assets/test_data1.RData")
 

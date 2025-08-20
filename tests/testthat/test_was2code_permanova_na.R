@@ -1,10 +1,6 @@
 context("Test was2code_permanova_na")
-library(testthat)
-library(Matrix)
-library(foreach)
-library(doRNG)
 
-registerDoSEQ()
+foreach::registerDoSEQ()
 
 # Helper to generate test data with optional NA entries
 generate_test_data_na <- function(n_samples = 20, n_genes = 5, seed = 123, na_fraction = 0) {

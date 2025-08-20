@@ -1,5 +1,5 @@
 context("Test result_array_list")
-library(testthat)
+
 test_that("result_array_list outputs correctly", {
   # Create mock data for dist_array_list
   n_gene <- 3

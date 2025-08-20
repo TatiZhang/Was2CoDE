@@ -1,13 +1,10 @@
 context("Test was2code_permanova")
-library(testthat)
-library(Matrix)
-library(foreach)
-library(doRNG)
-cl <- makeCluster(min(2, detectCores() - 1))
-registerDoParallel(cl)
+
+cl <- parallel::makeCluster(min(2, parallel::detectCores() - 1))
+doParallel::registerDoParallel(cl)
 
 # Register a sequential backend to avoid warnings about missing parallel backend
-registerDoSEQ()
+foreach::registerDoSEQ()
 
 # Shared helper to create test data
 generate_test_data <- function(n_samples = 20, n_genes = 5, seed = 123) {

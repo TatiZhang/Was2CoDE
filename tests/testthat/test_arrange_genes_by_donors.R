@@ -1,8 +1,4 @@
 context("Test arrange_genes_by_donors")
-library(testthat)
-library(transport)
-library(data.table)
-library(doRNG)
 
 # Load test data
 load("../assets/test_data1.RData")
