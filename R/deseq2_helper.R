@@ -19,7 +19,9 @@ deseq2_helper <- function(case_control_levels,
       idx <- which(seurat_obj@meta.data[,id_var] == person)
       person_idx <- which(names(tmp) == person)
       zz <- seurat_obj@meta.data[idx, variable]
-      stopifnot(abs(diff(range(zz))) <= 1e-4)
+      if(any(abs(diff(range(zz))) >= 1e-4)){
+        stop(paste0("Person (", person, ") violates the variable (", variable, "): ", diff(range(zz))))
+      }
       tmp[person_idx] <- mean(zz)
     }
     
