@@ -55,7 +55,7 @@ plot_signed_logpval <- function(df,
   if(bool_replaceNA) {
     for(j in 2:5){
       na_features <- which(is.na(df[,j]))
-      if(length(na_features) > 0) df[na_features,j] <- ifelse(grepl("logFC", x = colnames(df)), 0, 1)
+      if(length(na_features) > 0) df[na_features,j] <- ifelse(grepl("logFC", x = colnames(df)[j]), 0, 1)
     }
   } else {
     rm_features <- which(apply(df, 1, function(row) any(is.na(row))))
