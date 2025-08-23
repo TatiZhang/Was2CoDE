@@ -35,6 +35,7 @@ plot_signed_logpval <- function(df,
                                 method2,
                                 bool_capped = TRUE,
                                 bool_multtestadjust = TRUE,
+                                bool_replaceNA = TRUE,
                                 highlight_features = NULL) {
   stopifnot(all(c("Feature", 
                   paste0(method1, "_logFC"),
@@ -45,14 +46,22 @@ plot_signed_logpval <- function(df,
   rownames(df) <- df$Feature
   
   # Remove genes with NA
-  tmp <- df[, c("Feature", 
+  df <- df[, c("Feature", 
                 paste0(method1, "_logFC"),
                 paste0(method1, "_pval"),
                 paste0(method2, "_logFC"),
                 paste0(method2, "_pval"))]
-  rm_features <- which(apply(tmp, 1, function(row) any(is.na(row))))
-  if (length(rm_features) > 0) {
-    df <- df[-rm_features, , drop = FALSE]
+  
+  if(bool_replaceNA) {
+    for(j in 2:5){
+      na_features <- which(is.na(df[,j]))
+      if(length(na_features) > 0) df[na_features,j] <- ifelse(grepl("logFC", x = colnames(df)), 0, 1)
+    }
+  } else {
+    rm_features <- which(apply(df, 1, function(row) any(is.na(row))))
+    if (length(rm_features) > 0) {
+      df <- df[-rm_features, , drop = FALSE]
+    }
   }
   
   # Signed log p-values
