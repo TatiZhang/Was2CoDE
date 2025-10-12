@@ -48,7 +48,7 @@ deseq2_helper <- function(case_control_levels,
   }
   
   # make sure there's variation among the donors
-  metadata_pseudobulk <- metadata_pseudobulk[,c(categorical_vars, numerical_vars, case_control_var)]
+  metadata_pseudobulk <- metadata_pseudobulk[,c(categorical_vars, numerical_vars, case_control_var), drop = FALSE]
   keep_vars <- c()
   for(j in 1:ncol(metadata_pseudobulk)){
     if(!is.factor(metadata_pseudobulk[,j])) {
@@ -57,7 +57,7 @@ deseq2_helper <- function(case_control_levels,
       keep_vars <- c(keep_vars, j)
     }
   }
-  metadata_pseudobulk <- metadata_pseudobulk[,keep_vars]
+  metadata_pseudobulk <- metadata_pseudobulk[,keep_vars,drop = FALSE]
   
   # do DESeq2
   dds <- eval(parse(text = paste0("DESeq2::DESeqDataSetFromMatrix(countData = mat_pseudobulk, colData = metadata_pseudobulk, design = ~ ",
