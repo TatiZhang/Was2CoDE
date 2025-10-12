@@ -4,6 +4,7 @@ nebula_helper <- function(case_control_levels,
                           id_var,
                           numerical_vars,
                           seurat_obj){
+  
   neb_data <- nebula::scToNeb(obj = seurat_obj,
                               assay = "RNA",
                               id = id_var,
