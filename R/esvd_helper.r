@@ -24,24 +24,24 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                                            layer = "counts"))
   
   if(verbose > 0) print("Processing the covariates")
-  if(length(categorical_vars) > 1){
+  if(length(categorical_vars) >= 1){
     categorical_vars_subset <- categorical_vars[sapply(categorical_vars, function(x){
       length(levels(droplevels(seurat_obj@meta.data[,x]))) > 1
     })]
   } else {
     categorical_vars_subset <- NULL
   }
-  covariate_dat <- seurat_obj@meta.data[,c(id_var, categorical_vars_subset, numerical_vars)]
+  covariate_dat <- seurat_obj@meta.data[,c(id_var, categorical_vars_subset, numerical_vars), drop = FALSE]
   covariate_df <- data.frame(covariate_dat)
   
-  covariate_df[,case_control_var] <- factor(seurat_obj[,case_control_var], 
+  covariate_df[,case_control_var] <- factor(seurat_obj@meta.data[,case_control_var], 
                                             levels = case_control_levels)
   for(variable in setdiff(c(id_var, categorical_vars_subset), case_control_var)){
     covariate_df[,variable] <- factor(covariate_df[,variable], 
                                       levels = names(sort(table(covariate_df[,variable]), 
                                                           decreasing = TRUE)))
   }
-
+  
   covariates <- eSVD2::format_covariates(dat = mat,
                                          covariate_df = covariate_df,
                                          rescale_numeric_variables = numerical_vars)
