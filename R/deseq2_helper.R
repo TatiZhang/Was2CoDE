@@ -1,4 +1,4 @@
-deseq2_helper <- function(case_control_levels,
+deseq2_helper <- function(case_control_levels, # Control and then Case
                           case_control_var,
                           categorical_vars,
                           id_var,
