@@ -4,6 +4,17 @@ deseq2_helper <- function(case_control_levels, # Control and then Case
                           id_var,
                           numerical_vars,
                           seurat_obj){
+  stopifnot(length(unique(categorical_vars)) == length(categorical_vars),
+            all(is.character(categorical_vars)),
+            length(unique(numerical_vars)) == length(numerical_vars),
+            all(is.character(numerical_vars)),
+            length(case_control_var) == 1,
+            is.character(case_control_var),
+            length(id_var) == 1,
+            is.character(id_var),
+            length(case_control_levels) == 2,
+            all(is.character(case_control_levels)))
+  
   pseudo_seurat <- Seurat::AggregateExpression(seurat_obj, 
                                                assays = "RNA", 
                                                return.seurat = TRUE, 

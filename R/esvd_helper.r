@@ -6,6 +6,17 @@ esvd_helper <- function(case_control_levels, # Control and then Case
                         numerical_vars,
                         seurat_obj,
                         verbose = 0){
+  stopifnot(length(unique(categorical_vars)) == length(categorical_vars),
+            all(is.character(categorical_vars)),
+            length(unique(numerical_vars)) == length(numerical_vars),
+            all(is.character(numerical_vars)),
+            length(case_control_var) == 1,
+            is.character(case_control_var),
+            length(id_var) == 1,
+            is.character(id_var),
+            length(case_control_levels) == 2,
+            all(is.character(case_control_levels)))
+  
   # make sure there's an appropriate batch variable
   stopifnot(is.null(batch_var_prefix) || length(grep(batch_var_prefix, categorical_vars) > 1))
   
