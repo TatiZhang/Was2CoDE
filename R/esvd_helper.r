@@ -1,16 +1,14 @@
-esvd_helper <- function(case_control_levels, # Control and then Case
+esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. Can be NULL
+                        case_control_levels, # Control and then Case
                         case_control_var,
                         categorical_vars,
-                        batch_var_prefix, # a variable inside categorical_vars. Can be NULL
                         id_var,
                         numerical_vars,
                         seurat_obj,
                         verbose = 0){
-  stopifnot(length(unique(categorical_vars)) == length(categorical_vars),
-            all(is.character(categorical_vars)),
-            length(unique(numerical_vars)) == length(numerical_vars),
-            all(is.character(numerical_vars)),
-            length(case_control_var) == 1,
+  stopifnot(all(is.null(categorical_vars)) || (length(unique(categorical_vars)) == length(categorical_vars) && all(is.character(categorical_vars))))
+  stopifnot(all(is.null(numerical_vars)) || (length(unique(numerical_vars)) == length(numerical_vars) && all(is.character(numerical_vars))))
+  stopifnot(length(case_control_var) == 1,
             is.character(case_control_var),
             length(id_var) == 1,
             is.character(id_var),
@@ -26,9 +24,13 @@ esvd_helper <- function(case_control_levels, # Control and then Case
                                            layer = "counts"))
   
   if(verbose > 0) print("Processing the covariates")
-  categorical_vars_subset <- categorical_vars[sapply(categorical_vars, function(x){
-    length(levels(droplevels(seurat_obj@meta.data[,x]))) > 1
-  })]
+  if(length(categorical_vars) > 1){
+    categorical_vars_subset <- categorical_vars[sapply(categorical_vars, function(x){
+      length(levels(droplevels(seurat_obj@meta.data[,x]))) > 1
+    })]
+  } else {
+    categorical_vars_subset <- NULL
+  }
   covariate_dat <- seurat_obj@meta.data[,c(id_var, categorical_vars_subset, numerical_vars)]
   covariate_df <- data.frame(covariate_dat)
   

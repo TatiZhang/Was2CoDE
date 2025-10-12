@@ -4,11 +4,9 @@ nebula_helper <- function(case_control_levels,
                           id_var,
                           numerical_vars,
                           seurat_obj){
-  stopifnot(length(unique(categorical_vars)) == length(categorical_vars),
-            all(is.character(categorical_vars)),
-            length(unique(numerical_vars)) == length(numerical_vars),
-            all(is.character(numerical_vars)),
-            length(case_control_var) == 1,
+  stopifnot(all(is.null(categorical_vars)) || (length(unique(categorical_vars)) == length(categorical_vars) && all(is.character(categorical_vars))))
+  stopifnot(all(is.null(numerical_vars)) || (length(unique(numerical_vars)) == length(numerical_vars) && all(is.character(numerical_vars))))
+  stopifnot(length(case_control_var) == 1,
             is.character(case_control_var),
             length(id_var) == 1,
             is.character(id_var),
