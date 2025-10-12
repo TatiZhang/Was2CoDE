@@ -36,6 +36,7 @@ plot_signed_logpval <- function(df,
                                 bool_capped = TRUE,
                                 bool_multtestadjust = TRUE,
                                 bool_replaceNA = TRUE,
+                                padj_cutoff = 0.05,
                                 highlight_features = NULL) {
   stopifnot(all(c("Feature", 
                   paste0(method1, "_logFC"),
@@ -82,20 +83,20 @@ plot_signed_logpval <- function(df,
   names(y_pval) <- df$Feature
   
   # figure out x_fdrcutoff
-  if(length(which(x_pval <= 0.05)) >= 1){
-    x_fdrcutoff <- max(x_val[which(x_pval > 0.05)])
+  if(length(which(x_pval <= padj_cutoff)) >= 1){
+    x_fdrcutoff <- max(x_val[which(x_pval > padj_cutoff)])
   } else {
     x_fdrcutoff <- 2*max(abs(x_val))
   }
-  x_features <- names(x_pval)[which(x_pval <= 0.05)]
+  x_features <- names(x_pval)[which(x_pval <= padj_cutoff)]
   
   # figure out y_fdrcutoff
-  if(length(which(y_pval <= 0.05)) >= 1){
-    y_fdrcutoff <- max(y_val[which(y_pval > 0.05)])
+  if(length(which(y_pval <= padj_cutoff)) >= 1){
+    y_fdrcutoff <- max(y_val[which(y_pval > padj_cutoff)])
   } else {
     y_fdrcutoff <- 2*max(abs(y_val))
   }
-  y_features <- names(y_pval)[which(y_pval <= 0.05)]
+  y_features <- names(y_pval)[which(y_pval <= padj_cutoff)]
   
   # compute plotting ingredients
   idx <- intersect(which(!is.na(x_val)), which(!is.na(y_val)))
