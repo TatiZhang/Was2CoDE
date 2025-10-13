@@ -1,6 +1,6 @@
 Package: Was2CoDE
 Title: Statistical tool using Was2CoDE method and Was-2 decomposition
-Version: 0.0.0.9026
+Version: 0.0.0.9027
 Authors@R: 
     person("Tati", "Zhang", email = "Wenjiz1@uw.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0007-8949-5933"))
@@ -24,7 +24,8 @@ Imports:
     Matrix,
     stats,
     transport,
-    eSVD2
+    eSVD2,
+    EnhancedVolcano
 Suggests:
     testthat (>= 3.0.0),
     knitr,
