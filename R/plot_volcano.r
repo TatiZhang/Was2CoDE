@@ -12,8 +12,13 @@ plot_volcano <- function(df,
   
   padj_vec <- stats::p.adjust(df[,pvalue_variable], 
                               method = "BH")
-  pCutoff <- max(df[which(padj_vec <= padj_cutoff), 
-                    pvalue_variable])
+  gene_idx <- which(padj_vec <= padj_cutoff)
+  if(length(gene_idx) > 0){
+    pCutoff <- max(df[gene_idx, pvalue_variable])
+  } else {
+    pCutoff <- 0
+  }
+
   FCcutoff <- stats::quantile(abs(df[,logFC_variable]), 
                               probs = FCcutoff_quantile,
                               na.rm = TRUE)
