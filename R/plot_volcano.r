@@ -25,6 +25,7 @@ plot_volcano <- function(df,
   xlim <- stats::quantile(df[,logFC_variable], 
                           probs = xlim_quantile,
                           na.rm = TRUE)
+  ylim <- c(0,max(-log10(df[,pvalue_variable])))
   
   plot1 <- EnhancedVolcano::EnhancedVolcano(
     df,
@@ -32,6 +33,7 @@ plot_volcano <- function(df,
     x = logFC_variable,
     y = pvalue_variable,
     xlim = xlim,
+    ylim = ylim,
     pCutoff = pCutoff,
     FCcutoff = FCcutoff
   )
