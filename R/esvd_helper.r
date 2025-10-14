@@ -67,6 +67,7 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
     omitted_variables <- NULL
   }
   
+  if(verbose > 0) print("Doing the first reparameterization")
   eSVD_obj <- eSVD2::reparameterization_esvd_covariates(
     input_obj = eSVD_obj,
     fit_name = "fit_Init",
