@@ -6,14 +6,20 @@ plot_volcano <- function(df,
                          xlim_quantile = c(0.005, 0.995)){
   stopifnot(length(rownames(df)) == nrow(df))
   
+  # replace NA
+  idx <- which(is.na(df[,pvalue_variable]))
+  if(length(idx) > 0) df[idx,pvalue_variable] <- 1
+  
   padj_vec <- stats::p.adjust(df[,pvalue_variable], 
                               method = "BH")
   pCutoff <- max(df[which(padj_vec <= padj_cutoff), 
                     pvalue_variable])
   FCcutoff <- stats::quantile(abs(df[,logFC_variable]), 
-                              probs = FCcutoff_quantile)
+                              probs = FCcutoff_quantile,
+                              na.rm = TRUE)
   xlim <- stats::quantile(df[,logFC_variable], 
-                          probs = xlim_quantile)
+                          probs = xlim_quantile,
+                          na.rm = TRUE)
   
   plot1 <- EnhancedVolcano::EnhancedVolcano(
     df,
