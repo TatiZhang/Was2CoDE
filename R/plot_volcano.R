@@ -3,7 +3,8 @@ plot_volcano <- function(df,
                          pvalue_variable,
                          FCcutoff_quantile = 0.9,
                          padj_cutoff = 0.05,
-                         xlim_quantile = c(0.005, 0.995)){
+                         xlim_quantile = c(0.005, 0.995),
+                         ymax_quantile = 0.995){
   stopifnot(length(rownames(df)) == nrow(df))
   
   # replace NA
@@ -27,7 +28,7 @@ plot_volcano <- function(df,
                           na.rm = TRUE)
   
   ymax <- stats::quantile(-log10(df[,pvalue_variable]), 
-                          probs = 0.995)
+                          probs = ymax_quantile)
   df[,pvalue_variable] <- pmax(df[,pvalue_variable], 10^(-ymax))
   ylim <- c(0, ymax)
   
