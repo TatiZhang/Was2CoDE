@@ -76,7 +76,7 @@ plot_signed_logpval <- function(df,
     y_pval <- stats::p.adjust(df[, paste0(method2, "_pval")], method = "BH")
   } else {
     x_pval <- df[, paste0(method1, "_pval")]
-    x_pval <- df[, paste0(method2, "_pval")]
+    y_pval <- df[, paste0(method2, "_pval")]
   }
   
   names(x_pval) <- df$Feature
