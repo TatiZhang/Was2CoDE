@@ -5,6 +5,7 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                         id_var,
                         numerical_vars,
                         seurat_obj,
+                        intermediate_save = NULL, # NULL or filepath to save intermediary results
                         verbose = 0){
   stopifnot(all(is.null(categorical_vars)) || (length(unique(categorical_vars)) == length(categorical_vars) && all(is.character(categorical_vars))))
   stopifnot(all(is.null(numerical_vars)) || (length(unique(numerical_vars)) == length(numerical_vars) && all(is.character(numerical_vars))))
@@ -67,6 +68,11 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
     omitted_variables <- NULL
   }
   
+  if(!is.null(intermediate_save)){
+    save(eSVD_obj,
+         file = intermediate_save)
+  }
+  
   if(verbose > 0) print("Doing the first reparameterization")
   eSVD_obj <- eSVD2::reparameterization_esvd_covariates(
     input_obj = eSVD_obj,
@@ -84,6 +90,11 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                               fit_name = "fit_First",
                               fit_previous = "fit_Init")
   
+  if(!is.null(intermediate_save)){
+    save(eSVD_obj,
+         file = intermediate_save)
+  }
+  
   eSVD_obj <- eSVD2::reparameterization_esvd_covariates(
     input_obj = eSVD_obj,
     fit_name = "fit_First",
@@ -100,6 +111,11 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                               fit_name = "fit_Second",
                               fit_previous = "fit_First")
   
+  if(!is.null(intermediate_save)){
+    save(eSVD_obj,
+         file = intermediate_save)
+  }
+  
   eSVD_obj <- eSVD2::reparameterization_esvd_covariates(
     input_obj = eSVD_obj,
     fit_name = "fit_Second",
@@ -113,6 +129,11 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                                        bool_use_log = FALSE,
                                        verbose = 1)
   
+  if(!is.null(intermediate_save)){
+    save(eSVD_obj,
+         file = intermediate_save)
+  }
+  
   if(verbose > 0) print("Computing posterior")
   eSVD_obj <- eSVD2::compute_posterior(input_obj = eSVD_obj,
                                        bool_adjust_covariates = FALSE,
@@ -121,6 +142,11 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                                        bool_stabilize_underdispersion = TRUE,
                                        library_min = 0.1,
                                        pseudocount = 0)
+  
+  if(!is.null(intermediate_save)){
+    save(eSVD_obj,
+         file = intermediate_save)
+  }
   
   if(verbose > 0) print("Computing p-values")
   eSVD_obj <- eSVD2::compute_test_statistic(input_obj = eSVD_obj,
