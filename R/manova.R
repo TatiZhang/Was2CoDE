@@ -6,13 +6,18 @@ manova <- function(expr_assay, # "SCT"
                    return_sorted = TRUE,
                    verbose = 0){
   
-  if(verbose > 2) print("Extracting epxressiong matrix")
+  if(verbose >= 2) print("Extracting epxression matrix")
   expr <- SeuratObject::LayerData(seurat_obj, 
                                   assay = expr_assay, 
                                   layer = expr_layer)
   
-  md <- seurat_obj@meta.data[,id_vars]
-  group_key <- factor(apply(md, 1, paste, collapse = "||"))
+  if(length(id_vars) == 1){
+    group_key <- factor(seurat_obj@meta.data[,id_vars])
+  } else {
+    md <- seurat_obj@meta.data[,id_vars]
+    group_key <- factor(apply(md, 1, paste, collapse = "||"))
+  }
+ 
   
   mm <- Matrix::sparse.model.matrix(~ 0 + group_key)  # cells x groups
   colnames(mm) <- sub("^group_key", "", colnames(mm))
@@ -21,7 +26,7 @@ manova <- function(expr_assay, # "SCT"
   # ----------------------------
   # Compute means via sums / n
   # ----------------------------
-  if(verbose > 2) print("Computing donor mean")
+  if(verbose >= 2) print("Computing donor mean")
   sums <- expr %*% mm                                # genes x groups
   mean_mat <- sweep(as.matrix(sums), 2, n_per_group, "/")  # genes x groups (dense matrix)
   
@@ -29,7 +34,7 @@ manova <- function(expr_assay, # "SCT"
   # Compute variances (sample variance by default)
   #    Var = (sum(x^2) - n*mean^2)/(n-1)
   # ----------------------------
-  if(verbose > 2) print("Computing donor variance")
+  if(verbose >= 2) print("Computing donor variance")
   expr_sq <- expr
   expr_sq@x <- expr_sq@x^2                           # sparse-friendly square
   sumsq <- expr_sq %*% mm                            # genes x groups
@@ -46,7 +51,7 @@ manova <- function(expr_assay, # "SCT"
   var_mat[var_mat <= 0 & var_mat > -1e-12] <- 1e-6
   
   ########################
-  if(verbose > 2) print("Staring R2 calculation")
+  if(verbose >= 2) print("Staring R2 calculation")
   df <- seurat_obj@meta.data[,unique(c(id_vars, factor_vars))]
   df <- unique(df)
   
