@@ -55,6 +55,7 @@ manova <- function(expr_assay, # "SCT"
   if(verbose >= 2) print("Staring R2 calculation")
   df <- seurat_obj@meta.data[,unique(c(id_vars, factor_vars))]
   df <- unique(df)
+  if(nrow(df) != length(levels(group_key))) stop("There is a mismatch between the factors in `id_vars` and the factors that make each cell's covarites unique in `factor_vars`. Likely, you need to include more variables in `id_vars`")
   
   gene_R2 <- matrix(NA, nrow = nrow(mean_mat), ncol = length(factor_vars)+1)
   rownames(gene_R2) <- rownames(mean_mat)
