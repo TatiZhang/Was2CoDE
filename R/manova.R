@@ -48,7 +48,8 @@ manova <- function(expr_assay, # "SCT"
   )
   
   # tiny negative numerical noise -> clamp to 0
-  var_mat[var_mat <= 0 & var_mat > -1e-12] <- 1e-6
+  var_mat[var_mat <= 0 & var_mat > -1e-12] <- 0
+  var_mat[is.na(var_mat)] <- 0
   
   ########################
   if(verbose >= 2) print("Staring R2 calculation")
