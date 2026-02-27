@@ -11,6 +11,9 @@ plot_volcano <- function(df,
   idx <- which(is.na(df[,pvalue_variable]))
   if(length(idx) > 0) df[idx,pvalue_variable] <- 1
   
+  idx <- which(df[,pvalue_variable] == 0)
+  if(length(idx) > 0) df[idx,pvalue_variable] <- min(df[-idx,pvalue_variable])
+  
   padj_vec <- stats::p.adjust(df[,pvalue_variable], 
                               method = "BH")
   gene_idx <- which(padj_vec <= padj_cutoff)
