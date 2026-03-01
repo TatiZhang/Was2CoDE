@@ -45,16 +45,16 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
     }
   }
   
-  eSVD_obj <- eSVD:::eSVD(batch_var_prefix = batch_var_prefix, 
-                          case_control_levels = case_control_levels,
-                          case_control_var = case_control_var,
-                          categorical_vars = categorical_vars,
-                          id_var = id_var,
-                          numerical_vars = numerical_vars,
-                          seurat_obj = seurat_obj,
-                          intermediate_save = intermediate_save,
-                          verbose = verbose,
-                          ...)
+  eSVD_obj <- eSVD2:::eSVD(batch_var_prefix = batch_var_prefix, 
+                           case_control_levels = case_control_levels,
+                           case_control_var = case_control_var,
+                           categorical_vars = categorical_vars,
+                           id_var = id_var,
+                           numerical_vars = numerical_vars,
+                           seurat_obj = seurat_obj,
+                           intermediate_save = intermediate_save,
+                           verbose = verbose,
+                           ...)
   
   eSVD_obj
 }
