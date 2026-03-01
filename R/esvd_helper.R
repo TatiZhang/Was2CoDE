@@ -14,6 +14,7 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                         verbose = 0,
                         ...){
   
+  seurat_obj@meta.data[,case_control_var] <- droplevels(seurat_obj@meta.data[,case_control_var])
   
   if(bool_check_donors){
     # remove any subjects that only have less than min_cells_per_id cells
