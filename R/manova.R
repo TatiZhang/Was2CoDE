@@ -1,9 +1,8 @@
-manova <- function(expr_assay, # "SCT"
+manova <- function(expr_assay, # "RNA"
                    expr_layer, # "data"
                    factor_vars, # has to be strictly factors
                    id_vars, # could be more than one variable
                    seurat_obj,
-                   return_sorted = TRUE,
                    verbose = 0){
   
   if(verbose >= 2) print("Extracting epxression matrix")
@@ -17,11 +16,12 @@ manova <- function(expr_assay, # "SCT"
     md <- seurat_obj@meta.data[,id_vars]
     group_key <- factor(apply(md, 1, paste, collapse = "||"))
   }
- 
   
   mm <- Matrix::sparse.model.matrix(~ 0 + group_key)  # cells x groups
   colnames(mm) <- sub("^group_key", "", colnames(mm))
   n_per_group <- Matrix::colSums(mm)  # group sizes (length = #groups)
+  
+  is_sparse <- inherits(expr, "sparseMatrix")
   
   # ----------------------------
   # Compute means via sums / n
@@ -35,8 +35,12 @@ manova <- function(expr_assay, # "SCT"
   #    Var = (sum(x^2) - n*mean^2)/(n-1)
   # ----------------------------
   if(verbose >= 2) print("Computing donor variance")
-  expr_sq <- expr
-  expr_sq@x <- expr_sq@x^2                           # sparse-friendly square
+  if(is_sparse){
+    expr_sq <- expr
+    expr_sq@x <- expr_sq@x^2                           # sparse-friendly square
+  } else {
+    expr_sq <- expr^2
+  }
   sumsq <- expr_sq %*% mm                            # genes x groups
   sumsq_mat <- as.matrix(sumsq)
   
@@ -57,9 +61,9 @@ manova <- function(expr_assay, # "SCT"
   df <- unique(df)
   if(nrow(df) != length(levels(group_key))) stop("There is a mismatch between the factors in `id_vars` and the factors that make each cell's covarites unique in `factor_vars`. Likely, you need to include more variables in `id_vars`")
   
-  gene_R2 <- matrix(NA, nrow = nrow(mean_mat), ncol = length(factor_vars)+1)
+  gene_R2 <- matrix(NA, nrow = nrow(mean_mat), ncol = length(factor_vars))
   rownames(gene_R2) <- rownames(mean_mat)
-  colnames(gene_R2) <- c(factor_vars, "SST")
+  colnames(gene_R2) <- factor_vars
   
   for (gene_idx in seq_len(nrow(mean_mat))) {
     if (verbose > 0 && nrow(mean_mat) > 10 && gene_idx %% floor(nrow(mean_mat)/10) == 0) cat("*")
@@ -75,15 +79,9 @@ manova <- function(expr_assay, # "SCT"
     for(j in 1:length(factor_vars)){
       gene_R2[gene_idx, factor_vars[j]] <- res_list[[j]]$R2
     } 
-    gene_R2[gene_idx, "SST"] <-  res_list[[1]]$SST
   }
   
   gene_R2 <- as.data.frame(gene_R2)
-  
-  if(return_sorted){
-    sum_vec <- rowSums(gene_R2[,setdiff(colnames(gene_R2), "SST")])
-    gene_R2 <- gene_R2[order(sum_vec, decreasing = TRUE),]
-  }
   
   gene_R2
 }
