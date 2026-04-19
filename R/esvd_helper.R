@@ -13,6 +13,8 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
                         min_ids = 4,
                         verbose = 0,
                         ...){
+  if (!requireNamespace("eSVD2", quietly = TRUE))
+    stop("Package 'eSVD2' is required. Install it with remotes::install_github('linnykos/eSVD2').")
   
   seurat_obj@meta.data[,case_control_var] <- droplevels(seurat_obj@meta.data[,case_control_var])
   
@@ -22,10 +24,8 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
     if(any(indiv_count < min_cells_per_id)){
       indiv_rm <- names(indiv_count)[indiv_count < min_cells_per_id]
       
-      keep_vec <- rep(TRUE, length(Seurat::Cells(seurat_obj)))
-      keep_vec[seurat_obj@meta.data[,id_var] %in% indiv_rm] <- FALSE
-      seurat_obj$keep <- keep_vec
-      seurat_obj <- subset(seurat_obj, keep == TRUE)
+      keep_vec <- !seurat_obj@meta.data[,id_var] %in% indiv_rm
+      seurat_obj <- seurat_obj[, keep_vec]
       seurat_obj@meta.data[,id_var] <- droplevels(seurat_obj@meta.data[,id_var])
     }
     # if there are min_cells or less cells, go next
@@ -45,16 +45,17 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
     }
   }
   
-  eSVD_obj <- eSVD2:::eSVD(batch_var_prefix = batch_var_prefix, 
-                           case_control_levels = case_control_levels,
-                           case_control_var = case_control_var,
-                           categorical_vars = categorical_vars,
-                           id_var = id_var,
-                           numerical_vars = numerical_vars,
-                           seurat_obj = seurat_obj,
-                           intermediate_save = intermediate_save,
-                           verbose = verbose,
-                           ...)
+  esvd_fn <- utils::getFromNamespace("eSVD", "eSVD2")
+  eSVD_obj <- esvd_fn(batch_var_prefix = batch_var_prefix,
+                      case_control_levels = case_control_levels,
+                      case_control_var = case_control_var,
+                      categorical_vars = categorical_vars,
+                      id_var = id_var,
+                      numerical_vars = numerical_vars,
+                      seurat_obj = seurat_obj,
+                      intermediate_save = intermediate_save,
+                      verbose = verbose,
+                      ...)
   
   eSVD_obj
 }

@@ -3,6 +3,7 @@
 #' @param a Numeric (gene expressions) vector.
 #' @param b Numeric (gene expressions) vector.
 #' @param p Integer, power parameter for the Wasserstein distance.
+#' @param verbose Integer verbosity level (0 = silent).
 #'
 #' @return A numeric vector containing four divergence metrics: distance, location difference, 
 #'size difference, and shape difference.
@@ -21,8 +22,8 @@ divergence <- function(a, b, p=2, verbose = 0) {
   }
   
   if(verbose > 3) {
-    print(paste0("head of a: ", paste0(head(a), collapse = ", ")))
-    print(paste0("head of b: ", paste0(head(b), collapse = ", ")))
+    print(paste0("head of a: ", paste0(utils::head(a), collapse = ", ")))
+    print(paste0("head of b: ", paste0(utils::head(b), collapse = ", ")))
   }
   
   was2 <- transport::wasserstein1d(a, b, p, wa = NULL, wb = NULL)

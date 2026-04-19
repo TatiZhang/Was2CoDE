@@ -4,6 +4,8 @@ deseq2_helper <- function(case_control_levels, # Control and then Case
                           id_var,
                           numerical_vars,
                           seurat_obj){
+  if (!requireNamespace("DESeq2", quietly = TRUE))
+    stop("Package 'DESeq2' is required. Install it with BiocManager::install('DESeq2').")
   stopifnot(all(is.null(categorical_vars)) || (length(unique(categorical_vars)) == length(categorical_vars) && all(is.character(categorical_vars))))
   stopifnot(all(is.null(numerical_vars)) || (length(unique(numerical_vars)) == length(numerical_vars) && all(is.character(numerical_vars))))
   stopifnot(length(case_control_var) == 1,
@@ -43,7 +45,7 @@ deseq2_helper <- function(case_control_levels, # Control and then Case
                                             features = Seurat::VariableFeatures(pseudo_seurat))
   metadata_pseudobulk <- pseudo_seurat@meta.data
   
-  metadata_pseudobulk[,case_control_var] <- relevel(factor(metadata_pseudobulk[,case_control_var]), 
+  metadata_pseudobulk[,case_control_var] <- stats::relevel(factor(metadata_pseudobulk[,case_control_var]),
                                                     ref = case_control_levels[1])
   
   for(variable in c(categorical_vars, id_var)){

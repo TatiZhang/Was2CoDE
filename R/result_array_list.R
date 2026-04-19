@@ -1,7 +1,7 @@
 #' Generate Result Array List
 #'
-#' @param dist_array_list 
-#' @param meta_ind 
+#' @param dist_array_list A list of distance arrays, one per gene (output of `was2code_dist()`).
+#' @param meta_ind A data frame with one row per donor; must contain an `individual` column.
 #'
 #' @return A list of 3-dimensional arrays, one for each metric (distance, location, location_sign, size, size_sign, shape).
 #' Each array has dimensions (number of genes, number of donors, number of donors) and contains the respective metric values.

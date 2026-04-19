@@ -20,7 +20,6 @@ First, ensure that you have installed the Was2CoDE package from GitHub:
 # Don't run these during build/check
 install.packages("devtools")
 install.packages("data.table")
-install.packages("doRNG")
 
 # Install Was2CoDE from GitHub (example only)
 devtools::install_github("TatiZhang/Was2CoDE")
@@ -33,7 +32,6 @@ devtools::install_github("TatiZhang/Was2CoDE")
 # Load the packages
 library(Was2CoDE)
 library(data.table)
-library(doRNG)
 ```
 
 ## Generate Synthetic Data

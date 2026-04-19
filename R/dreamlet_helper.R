@@ -8,7 +8,9 @@ dreamlet_helper <- function(case_control_levels, # Control and then Case
                             min_count = 0,
                             min_samples = 4,
                             min_prop = 0){
-  
+  if (!requireNamespace("dreamlet", quietly = TRUE))
+    stop("Package 'dreamlet' is required. Install it with BiocManager::install('dreamlet').")
+
   # check that all the variables in c(case_control_var, categorical_vars, numerical_vars) 
   # are unique within each id_var
   # if not, append that variable to id_var
@@ -61,8 +63,8 @@ dreamlet_helper <- function(case_control_levels, # Control and then Case
   res_dl <- dreamlet::dreamlet(res_proc, form)
   
   res_pvalues <- dreamlet::topTable(res_dl,
-                                    coef = paste0(coefNames(res_dl)[2]),
-                                    number = Inf) 
+                                    coef = paste0(dreamlet::coefNames(res_dl)[2]),
+                                    number = Inf)
   
   return(res_pvalues)
 }

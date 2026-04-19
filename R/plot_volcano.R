@@ -5,6 +5,8 @@ plot_volcano <- function(df,
                          padj_cutoff = 0.05,
                          xlim_quantile = c(0.005, 0.995),
                          ymax_quantile = 0.995){
+  if (!requireNamespace("EnhancedVolcano", quietly = TRUE))
+    stop("Package 'EnhancedVolcano' is required. Install it with BiocManager::install('EnhancedVolcano').")
   stopifnot(length(rownames(df)) == nrow(df))
   
   # replace NA

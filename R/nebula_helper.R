@@ -4,6 +4,8 @@ nebula_helper <- function(case_control_levels,
                           id_var,
                           numerical_vars,
                           seurat_obj){
+  if (!requireNamespace("nebula", quietly = TRUE))
+    stop("Package 'nebula' is required. Install it with install.packages('nebula').")
   stopifnot(all(is.null(categorical_vars)) || (length(unique(categorical_vars)) == length(categorical_vars) && all(is.character(categorical_vars))))
   stopifnot(all(is.null(numerical_vars)) || (length(unique(numerical_vars)) == length(numerical_vars) && all(is.character(numerical_vars))))
   stopifnot(length(case_control_var) == 1,
