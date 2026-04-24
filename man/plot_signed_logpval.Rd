@@ -10,6 +10,8 @@ plot_signed_logpval(
   method2,
   bool_capped = TRUE,
   bool_multtestadjust = TRUE,
+  bool_replaceNA = TRUE,
+  padj_cutoff = 0.05,
   highlight_features = NULL
 )
 }
@@ -29,6 +31,10 @@ but values are automatically capped at 97.5\% quantile for visualization.}
 
 \item{bool_multtestadjust}{Logical indicating whether the draw the dotted lines at the nominal or
 multiple-test-corrected pvalues (default).}
+
+\item{bool_replaceNA}{Logical; if TRUE, replace NA logFC with 0 and NA pval with 1 instead of dropping rows.}
+
+\item{padj_cutoff}{Numeric FDR threshold for significance (default 0.05).}
 
 \item{highlight_features}{Character vector of gene names to highlight in red.
 If NULL (default), genes significant in both methods (FDR < 0.05) will be highlighted.}

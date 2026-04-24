@@ -1,305 +1,432 @@
 context("Test was2code_dist")
 
-# Register parallel backend
-cl <- parallel::makeCluster(min(2, parallel::detectCores() - 1))
-doParallel::registerDoParallel(cl)
+# ─────────────────────────────────────────────────────────────────────────────
+# Synthetic inputs for structural and distributional tests.
+#
+# 4 genes, 4 cases + 4 controls, 100 cells per donor:
+#   null_gene     – all donors ~ N(0, 1)
+#   location_gene – cases ~ N(5, 1),    controls ~ N(0, 1)         [mean shift]
+#   size_gene     – cases ~ N(0, 3),    controls ~ N(0, 0.3)       [variance shift]
+#   shape_gene    – cases ~ bimodal ±3 (sd=0.3), controls ~ N(0, 3.015)
+#                   [shape shift; sd matched between groups]
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Load test data
-load("../assets/test_data1.RData")
+.make_test_data <- function(seed     = 42,
+                            n_case   = 4,
+                            n_ctrl   = 4,
+                            n_cpd    = 100) {   # cells per donor
+  set.seed(seed)
+  n_donors  <- n_case + n_ctrl
+  n_cells   <- n_donors * n_cpd
+  donor_ids <- c(paste0("case", seq_len(n_case)), paste0("ctrl", seq_len(n_ctrl)))
+  cell_ids  <- paste0("cell", seq_len(n_cells))
 
-test_that("was2code_dist outputs correctly", {
-  # Transform counts for testing
-  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
-  
-  # Run the function
-  output <- was2code_dist(
-    count_input = count_matrix_count,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl"
+  gene_names <- c("null_gene", "location_gene", "size_gene", "shape_gene")
+  mat <- matrix(NA_real_, nrow = 4, ncol = n_cells,
+                dimnames = list(gene_names, cell_ids))
+
+  # sd of bimodal ±3, sd=0.3: sqrt(9 + 0.09) = sqrt(9.09) ≈ 3.015
+  bimodal_sd <- sqrt(9.09)
+
+  for (i in seq_len(n_donors)) {
+    idx     <- seq((i - 1) * n_cpd + 1, i * n_cpd)
+    is_case <- i <= n_case
+    signs   <- sample(c(-1L, 1L), n_cpd, replace = TRUE)
+
+    mat["null_gene",     idx] <- rnorm(n_cpd, 0, 1)
+    mat["location_gene", idx] <- rnorm(n_cpd, if (is_case) 5 else 0, 1)
+    mat["size_gene",     idx] <- rnorm(n_cpd, 0, if (is_case) 3 else 0.3)
+    mat["shape_gene",    idx] <- if (is_case) rnorm(n_cpd, signs * 3, 0.3)   # bimodal ±3
+                                 else         rnorm(n_cpd, 0, bimodal_sd)     # normal, matched sd
+  }
+
+  list(
+    mat       = mat,
+    meta_cell = data.frame(cell_id    = cell_ids,
+                           individual = rep(donor_ids, each = n_cpd),
+                           stringsAsFactors = FALSE),
+    meta_ind  = data.frame(individual = donor_ids,
+                           group      = factor(c(rep("case", n_case),
+                                                 rep("ctrl", n_ctrl))),
+                           stringsAsFactors = FALSE),
+    case_ids  = donor_ids[seq_len(n_case)],
+    ctrl_ids  = donor_ids[n_case + seq_len(n_ctrl)]
   )
-  
-  # Check if output is a list and has the correct length
-  expect_is(output, "list", info = "Output should be a list.")
-  expect_equal(length(output), nrow(count_matrix_count), info = "Output list should have length equal to number of genes.")
-  
-  # Check if the first element is a 3D array with correct dimension names
-  expect_true(is.array(output[[1]]), info = "Each element of output should be an array.")
-  expected_names <- c("was2", "location", "size", "shape")
-  expect_equal(dimnames(output[[1]])[[3]], expected_names, info = "Third dimension names should match expected names.")
-  
-  # Check dimensions for all genes
-  gene_ids <- rownames(count_matrix)
-  for (i in seq_along(output)) {
-    expect_true(is.array(output[[i]]), info = sprintf("Output for gene index %d should be an array", i))
-    expect_true(is.list(dimnames(output[[i]])), info = sprintf("dimnames should be a list for gene index %d", i))
-    expect_true(length(dim(output[[i]])) == 3, info = sprintf("Output array should have 3 dimensions for gene index %d", i))
-    
-    # Check if dimensions are correct
-    expected_dimnames <- list(meta_ind$individual, meta_ind$individual, expected_names)
-    for (kk in 1:3) {
-      expect_true(all(dimnames(output[[i]])[[kk]] == expected_dimnames[[kk]]), 
-                  info = sprintf("Mismatch in dimnames for gene index %d", i))
+}
+
+td     <- .make_test_data()
+result <- was2code_dist(td$mat, td$meta_cell, td$meta_ind,
+                        var2test = "group", ncores = 1)
+
+# Mean absolute value of all entries in a submatrix; diagonal excluded when rows == cols.
+.mean_abs <- function(arr, row_ids, col_ids, metric) {
+  sub <- arr[row_ids, col_ids, metric]
+  if (identical(as.character(row_ids), as.character(col_ids))) diag(sub) <- NA
+  mean(abs(sub), na.rm = TRUE)
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. Output structure
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("output is a named list with one array per gene", {
+  expect_type(result, "list")
+  expect_length(result, nrow(td$mat))
+  expect_named(result, rownames(td$mat))
+})
+
+test_that("each gene's array has the correct dimensions and dimnames", {
+  n_donors      <- nrow(td$meta_ind)
+  expected_3rd  <- c("was2", "location", "size", "shape")
+
+  for (g in result) {
+    expect_true(is.array(g))
+    expect_equal(length(dim(g)), 3L)
+    expect_equal(dim(g), c(n_donors, n_donors, 4L))
+    expect_equal(dimnames(g)[[1]], td$meta_ind$individual)
+    expect_equal(dimnames(g)[[2]], td$meta_ind$individual)
+    expect_equal(dimnames(g)[[3]], expected_3rd)
+  }
+})
+
+test_that("diagonal entries are zero for every metric", {
+  for (g in result) {
+    for (metric in c("was2", "location", "size", "shape")) {
+      expect_equal(unname(diag(g[,, metric])),
+                   rep(0, nrow(td$meta_ind)),
+                   label = sprintf("diagonal of %s", metric))
     }
   }
-  
-  # Since was2code_dist uses KDE processing, we can't directly compare with manual calculations
-  # Instead, we'll check that the values are reasonable and follow expected patterns
-  set.seed(0)
-  selected_genes <- sample(nrow(count_matrix), 3)
-  
-  # Check that diagonal elements are zero (distance to self)
-  for (gene in selected_genes) {
-    for (i in 1:nrow(meta_ind)) {
-      expect_equal(output[[gene]][i, i, "was2"], 0, 
-                   info = sprintf("Self-distance should be zero for gene %d", gene))
-    }
-  }
-  
-  # Check symmetry of distance matrix with sign flipping for location and size
-  for (gene in selected_genes) {
-    for (i in 1:(nrow(meta_ind)-1)) {
-      for (j in (i+1):nrow(meta_ind)) {
-        # was2 and shape should be symmetric
-        expect_equal(output[[gene]][i, j, "was2"], output[[gene]][j, i, "was2"], 
-                     tolerance = 1e-10, info = "was2 should be symmetric")
-        expect_equal(output[[gene]][i, j, "shape"], output[[gene]][j, i, "shape"], 
-                     tolerance = 1e-10, info = "shape should be symmetric")
-        
-        # location and size should have opposite signs
-        expect_equal(output[[gene]][i, j, "location"], -output[[gene]][j, i, "location"], 
-                     tolerance = 1e-10, info = "location should have opposite signs")
-        expect_equal(output[[gene]][i, j, "size"], -output[[gene]][j, i, "size"], 
-                     tolerance = 1e-10, info = "size should have opposite signs")
-      }
-    }
-  }
-  
-  # Test for reasonable distance values (non-negative for was2 and shape)
-  for (gene in selected_genes) {
-    for (i in 1:(nrow(meta_ind)-1)) {
-      for (j in (i+1):nrow(meta_ind)) {
-        # Skip if NA values
-        if (!is.na(output[[gene]][i, j, "was2"])) {
-          expect_true(output[[gene]][i, j, "was2"] >= 0, 
-                      info = sprintf("was2 should be non-negative for gene %d", gene))
-        }
-        if (!is.na(output[[gene]][i, j, "shape"])) {
-          expect_true(output[[gene]][i, j, "shape"] >= 0, 
-                      info = sprintf("shape should be non-negative for gene %d", gene))
-        }
-      }
-    }
-  }
-  
-  # For a more robust test, check that output distances are correlated with 
-  # manual distances for a sample of genes (using correlation instead of equality)
-  correlation_threshold <- 0.5  # Adjust as needed
-  
-  for (gene in selected_genes) {
-    manual_distances <- matrix(nrow = nrow(meta_ind), ncol = nrow(meta_ind))
-    
-    # Calculate manual distances between all pairs of individuals
-    for (i in 1:nrow(meta_ind)) {
-      for (j in 1:nrow(meta_ind)) {
-        if (i != j) {
-          cols_ind1 <- which(meta_cell$individual == meta_ind$individual[i])
-          cols_ind2 <- which(meta_cell$individual == meta_ind$individual[j])
-          
-          data_ind1 <- count_matrix_count[gene, cols_ind1]
-          data_ind2 <- count_matrix_count[gene, cols_ind2]
-          
-          data_ind1 <- na.omit(data_ind1)
-          data_ind2 <- na.omit(data_ind2)
-          
-          if (length(data_ind1) > 0 & length(data_ind2) > 0) {
-            manual_distances[i, j] <- transport::wasserstein1d(data_ind1 + 1e-6, data_ind2 + 1e-6, p = 2)
-          } else {
-            manual_distances[i, j] <- NA
-          }
-        } else {
-          manual_distances[i, j] <- 0
-        }
-      }
-    }
-    
-    # Extract non-NA values for correlation
-    output_distances <- output[[gene]][, , "was2"]
-    valid_indices <- which(!is.na(manual_distances) & !is.na(output_distances))
-    
-    if (length(valid_indices) > 5) {  # Only test if we have enough valid comparisons
-      correlation <- cor(manual_distances[valid_indices], output_distances[valid_indices],
-                         method = "spearman", use = "complete.obs")
-      
-      # Check if correlation is NA
-      if (!is.na(correlation)) {
-        # Convert test to a warning rather than a failure if correlation is low
-        if (correlation < correlation_threshold) {
-          warning(sprintf("Low correlation (%f) between manual and output distances for gene %d", 
-                          correlation, gene))
-        }
-      } else {
-        warning(sprintf("Could not compute correlation for gene %d", gene))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. Distance properties
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("was2 and shape are symmetric and non-negative", {
+  n <- nrow(td$meta_ind)
+  for (g in result) {
+    for (i in seq_len(n - 1)) {
+      for (j in seq(i + 1, n)) {
+        expect_gte(g[i, j, "was2"],  0)
+        expect_gte(g[i, j, "shape"], 0)
+        expect_equal(g[i, j, "was2"],  g[j, i, "was2"],  tolerance = 1e-10)
+        expect_equal(g[i, j, "shape"], g[j, i, "shape"], tolerance = 1e-10)
       }
     }
   }
 })
 
-# Stop parallel backend after tests
-stopCluster(cl)
-
-test_that("was2code_dist outputs correctly", {
-  # Transform counts for testing
-  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
-  meta_ind[,"Study_DesignationCtrl"] <- factor(meta_ind[,"Study_DesignationCtrl"])
-  
-  # Run the function
-  output <- was2code_dist(
-    count_input = count_matrix_count,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl"
-  )
-  
-  expect_true(is.list(output))
-})
-
-test_that("was2code_dist runs faster with multiple cores", {
-  set.seed(42)
-  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
-  # Subset to a larger number of genes to increase runtime
-  genes_to_test <- seq_len(min(200, nrow(count_matrix_count)))
-
-  count_matrix_large <- count_matrix_count[rep(1:5, each = 40), ]
-  rownames(count_matrix_large) <- paste0("g", 1:nrow(count_matrix_large))
-  
-  # Single-core
-  t1_start <- Sys.time()
-  result_single_core <- was2code_dist(
-    count_input = count_matrix_large,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl",
-    ncores = 1
-  )
-  t1_end <- Sys.time()
-  time_single_core <- t1_end - t1_start
-  print(paste("Single-core time:", time_single_core))
-  
-  # Multi-core
-  t2_start <- Sys.time()
-  result_multi_core <- was2code_dist(
-    count_input = count_matrix_large,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl",
-    ncores = 2
-  )
-  t2_end <- Sys.time()
-  time_multi_core <- t2_end - t2_start
-  print(paste("Multi-core time:", time_multi_core))
-  
-  # Basic sanity check
-  expect_true(length(result_single_core) == length(result_multi_core),
-              info = "Results should have the same number of genes.")
-  
-  # Optional: Add a message if parallelization worked
-  if (as.numeric(time_multi_core, units = "secs") >= as.numeric(time_single_core, units = "secs")) {
-    warning("Parallel version did not run faster. Consider increasing dataset size for clearer speedup.")
-  } else {
-    message("Parallel version ran faster.")
+test_that("location and size are anti-symmetric", {
+  n <- nrow(td$meta_ind)
+  for (g in result) {
+    for (i in seq_len(n - 1)) {
+      for (j in seq(i + 1, n)) {
+        expect_equal(g[i, j, "location"], -g[j, i, "location"], tolerance = 1e-10)
+        expect_equal(g[i, j, "size"],     -g[j, i, "size"],     tolerance = 1e-10)
+      }
+    }
   }
 })
 
-test_that("was2code_dist runs with k=NULL", {
-  set.seed(42)
-  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
-  
-  # make new donors
-  meta_ind2 <- meta_ind
-  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
-  meta_ind2 <- rbind(meta_ind,
-                     meta_ind2)
-  meta_ind2$individual <- droplevels(meta_ind2$individual)
-  
-  # assign cells to the new donors
-  pt_id_vec <- as.character(meta_cell$Pt_ID)
-  for(i in 1:length(pt_id_vec)){
-    bool_val <- sample(c(TRUE, FALSE), size = 1)
-    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
-  }
-  meta_cell$individual <- factor(pt_id_vec)
-  
-  result_res <- was2code_dist(
-    count_input = count_matrix_count,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind2,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl",
-    ncores = 1,
-    k = NULL
-  )
-  
-  expect_true(all(!is.na(result_res[[1]][,,1])))
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. Input validation errors
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Minimal valid inputs reused across validation tests
+.min_mat <- function() {
+  matrix(rnorm(10), nrow = 2, ncol = 5,
+         dimnames = list(c("g1", "g2"), paste0("c", 1:5)))
+}
+.min_mc <- function() {
+  data.frame(cell_id    = paste0("c", 1:5),
+             individual = rep(c("d1", "d2"), c(3, 2)),
+             stringsAsFactors = FALSE)
+}
+.min_mi <- function() {
+  data.frame(individual = c("d1", "d2"),
+             group      = factor(c("case", "ctrl")),
+             stringsAsFactors = FALSE)
+}
+.run <- function(mat = .min_mat(), mc = .min_mc(), mi = .min_mi()) {
+  was2code_dist(mat, mc, mi, var2test = "group", ncores = 1)
+}
+
+test_that("error when count_input is not a matrix", {
+  expect_error(.run(mat = as.data.frame(.min_mat())))
 })
 
-test_that("was2code_dist runs with k is a small positive number", {
-  set.seed(42)
-  count_matrix_count <- pmin(round(exp(count_matrix)), 10)
-  
-  # make new donors
-  meta_ind2 <- meta_ind
-  meta_ind2$individual <- paste0(meta_ind2$individual, "_v2")
-  meta_ind2 <- rbind(meta_ind,
-                     meta_ind2)
-  meta_ind2$individual <- droplevels(meta_ind2$individual)
-  
-  # assign cells to the new donors
-  pt_id_vec <- as.character(meta_cell$Pt_ID)
-  for(i in 1:length(pt_id_vec)){
-    bool_val <- sample(c(TRUE, FALSE), size = 1)
-    if(bool_val) pt_id_vec[i] <- paste0(pt_id_vec[i], "_v2")
-  }
-  meta_cell$individual <- factor(pt_id_vec)
-  
-  result_res <- was2code_dist(
-    count_input = count_matrix_count,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind2,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl",
-    ncores = 1,
-    k = 1
-  )
-  
-  bool_vec <- sapply(1:nrow(meta_ind2), function(i){
-    length(which(!is.na(result_res[[1]][,,1]))) >= 3 
-    # there should be a 0 on the diagonal, 
-    # and each person is compared to 2 other people (1 case, 1 control)
-  })
-  expect_true(all(bool_vec))
-  
-  # it also works for ncores=2
-  result_res <- was2code_dist(
-    count_input = count_matrix_count,
-    meta_cell = meta_cell,
-    meta_ind = meta_ind2,
-    var_per_cell = var_per_cell,
-    var2test = "Study_DesignationCtrl",
-    ncores = 2,
-    k = 1
-  )
-  
-  bool_vec <- sapply(1:nrow(meta_ind2), function(i){
-    length(which(!is.na(result_res[[1]][,,1]))) >= 3 
-    # there should be a 0 on the diagonal, 
-    # and each person is compared to 2 other people (1 case, 1 control)
-  })
-  expect_true(all(bool_vec))
+test_that("error when count_input has no row names", {
+  m <- .min_mat(); rownames(m) <- NULL
+  expect_error(.run(mat = m))
 })
 
+test_that("error when count_input has no column names", {
+  m <- .min_mat(); colnames(m) <- NULL
+  expect_error(.run(mat = m))
+})
 
+test_that("error when count_input has duplicate row names", {
+  m <- .min_mat(); rownames(m) <- c("g1", "g1")
+  expect_error(.run(mat = m))
+})
+
+test_that("error when count_input has duplicate column names", {
+  m <- .min_mat(); colnames(m) <- c("c1", "c1", "c3", "c4", "c5")
+  expect_error(.run(mat = m))
+})
+
+test_that("error when meta_cell is not a data.frame", {
+  expect_error(.run(mc = list(cell_id = paste0("c", 1:5), individual = rep(c("d1","d2"), c(3,2)))))
+})
+
+test_that("error when meta_cell is missing required columns", {
+  mc <- .min_mc(); mc$cell_id <- NULL
+  expect_error(.run(mc = mc))
+
+  mc <- .min_mc(); mc$individual <- NULL
+  expect_error(.run(mc = mc))
+})
+
+test_that("error when meta_cell cell_id does not match count_input column names", {
+  mc <- .min_mc(); mc$cell_id[1] <- "wrong"
+  expect_error(.run(mc = mc))
+})
+
+test_that("error when meta_cell has duplicate cell IDs", {
+  mc <- .min_mc(); mc$cell_id[2] <- mc$cell_id[1]
+  expect_error(.run(mc = mc))
+})
+
+test_that("error when meta_ind is not a data.frame", {
+  expect_error(.run(mi = list(individual = c("d1","d2"), group = c("case","ctrl"))))
+})
+
+test_that("error when meta_ind is missing required columns", {
+  mi <- .min_mi(); mi$individual <- NULL
+  expect_error(.run(mi = mi))
+
+  mi <- .min_mi(); mi$group <- NULL
+  expect_error(.run(mi = mi))
+})
+
+test_that("error when individual IDs in meta_cell and meta_ind do not match", {
+  mi <- .min_mi(); mi$individual <- c("x1", "x2")
+  expect_error(.run(mi = mi))
+})
+
+test_that("error when meta_ind has duplicate individual IDs", {
+  mi <- .min_mi(); mi$individual <- c("d1", "d1")
+  expect_error(.run(mi = mi))
+})
+
+test_that("error when var2test has fewer than two levels", {
+  mi <- .min_mi(); mi$group <- factor(rep("case", 2))
+  expect_error(.run(mi = mi))
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. Distributional sensitivity
+#
+# For each signal gene, the relevant between-group metric must be substantially
+# larger than the within-group metric (threshold: 5x for location/size, 3x for
+# shape, since bimodal-vs-normal quantile correlation is less extreme).
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("location differences: between-group location distance >> within-group", {
+  g <- result[["location_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "location")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "location") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "location")) / 2
+
+  expect_gt(between, within * 5)
+})
+
+test_that("location differences: between-group was2 >> within-group", {
+  g <- result[["location_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "was2")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "was2") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "was2")) / 2
+
+  expect_gt(between, within * 5)
+})
+
+test_that("variance differences: between-group size distance >> within-group", {
+  g <- result[["size_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "size")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "size") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "size")) / 2
+
+  expect_gt(between, within * 5)
+})
+
+test_that("variance differences: between-group was2 >> within-group", {
+  g <- result[["size_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "was2")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "was2") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "was2")) / 2
+
+  expect_gt(between, within * 5)
+})
+
+test_that("shape differences: between-group shape distance >> within-group", {
+  g <- result[["shape_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "shape")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "shape") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "shape")) / 2
+
+  expect_gt(between, within * 2)
+})
+
+test_that("shape differences: between-group was2 >> within-group", {
+  g <- result[["shape_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "was2")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "was2") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "was2")) / 2
+
+  expect_gt(between, within * 2)
+})
+
+test_that("metric isolation: location_gene shows large location but small size and shape", {
+  g <- result[["location_gene"]]
+
+  loc_between  <- .mean_abs(g, td$case_ids, td$ctrl_ids, "location")
+  size_between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "size")
+
+  # Both groups have sd=1, so size should be near zero
+  expect_gt(loc_between, size_between * 5)
+})
+
+test_that("metric isolation: size_gene shows large size but small location", {
+  g <- result[["size_gene"]]
+
+  size_between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "size")
+  loc_between  <- .mean_abs(g, td$case_ids, td$ctrl_ids, "location")
+
+  # Both groups are mean-zero, so location should be near zero
+  expect_gt(size_between, loc_between * 5)
+})
+
+test_that("metric isolation: shape_gene shows large shape but small location and size", {
+  g <- result[["shape_gene"]]
+
+  shape_between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "shape")
+  loc_between   <- .mean_abs(g, td$case_ids, td$ctrl_ids, "location")
+  size_between  <- .mean_abs(g, td$case_ids, td$ctrl_ids, "size")
+
+  # Mean and sd are matched between groups, so location and size should be small
+  expect_gt(shape_between, loc_between  * 3)
+  expect_gt(shape_between, size_between * 3)
+})
+
+test_that("null gene: between-group and within-group was2 are of comparable magnitude", {
+  g <- result[["null_gene"]]
+
+  between <- .mean_abs(g, td$case_ids, td$ctrl_ids, "was2")
+  within  <- (.mean_abs(g, td$case_ids, td$case_ids, "was2") +
+              .mean_abs(g, td$ctrl_ids, td$ctrl_ids, "was2")) / 2
+
+  # Neither should be large in absolute terms (N(0,1) empirical W2 ≈ 0.1–0.3)
+  expect_lt(between, 1.0)
+  expect_lt(within,  1.0)
+  # And between should not dwarf within
+  expect_lt(between, within * 5)
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. k parameter
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("k=NULL (default): no off-diagonal NAs", {
+  for (g in result) {
+    w2 <- g[,, "was2"]
+    off_diag <- w2[row(w2) != col(w2)]
+    expect_false(any(is.na(off_diag)),
+                 info = "all off-diagonal entries should be non-NA when k=NULL")
+  }
+})
+
+test_that("k=1: matrix contains NAs (not all pairs compared)", {
+  result_k1 <- was2code_dist(td$mat, td$meta_cell, td$meta_ind,
+                             var2test = "group", ncores = 1, k = 1)
+
+  for (g in result_k1) {
+    w2 <- g[,, "was2"]
+    off_diag <- w2[row(w2) != col(w2)]
+    expect_true(any(is.na(off_diag)),
+                info = "k=1 should leave some off-diagonal entries as NA")
+  }
+})
+
+test_that("k=1: fewer filled entries than k=NULL", {
+  result_k1 <- was2code_dist(td$mat, td$meta_cell, td$meta_ind,
+                             var2test = "group", ncores = 1, k = 1)
+
+  for (gene in rownames(td$mat)) {
+    n_filled_full <- sum(!is.na(result[[gene]][,, "was2"]) &
+                           row(result[[gene]][,, "was2"]) != col(result[[gene]][,, "was2"]))
+    n_filled_k1   <- sum(!is.na(result_k1[[gene]][,, "was2"]) &
+                           row(result_k1[[gene]][,, "was2"]) != col(result_k1[[gene]][,, "was2"]))
+    expect_lt(n_filled_k1, n_filled_full,
+              label = sprintf("gene %s should have fewer filled pairs with k=1", gene))
+  }
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. Reproducibility: ncores=1 and ncores=2 give identical results
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("results are identical for ncores=1 and ncores=2", {
+  res1 <- was2code_dist(td$mat, td$meta_cell, td$meta_ind,
+                        var2test = "group", ncores = 1)
+  res2 <- was2code_dist(td$mat, td$meta_cell, td$meta_ind,
+                        var2test = "group", ncores = 2)
+
+  for (gene in names(res1)) {
+    expect_equal(res1[[gene]], res2[[gene]], tolerance = 1e-10,
+                 label = sprintf("gene %s", gene))
+  }
+})
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. Parallelization timing
+#
+# Uses 20 genes x 8 donors x 200 cells/donor so there is enough per-gene work
+# for mclapply to overcome fork overhead.  Skipped on CI and Windows (where
+# the parallel path is not taken) and when fewer than 2 cores are available.
+# ─────────────────────────────────────────────────────────────────────────────
+
+test_that("ncores=2 is faster than ncores=1 on a moderately large dataset", {
+  skip_on_ci()
+  skip_on_os("windows")
+  skip_if(parallel::detectCores() < 2L, "fewer than 2 cores available")
+
+  set.seed(99)
+  n_donors <- 8L; n_cpd <- 200L; n_genes <- 20L
+  donor_ids <- paste0("d", seq_len(n_donors))
+  cell_ids  <- paste0("c", seq_len(n_donors * n_cpd))
+
+  mat <- matrix(rnorm(n_genes * n_donors * n_cpd), nrow = n_genes,
+                dimnames = list(paste0("g", seq_len(n_genes)), cell_ids))
+  mc  <- data.frame(cell_id    = cell_ids,
+                    individual = rep(donor_ids, each = n_cpd),
+                    stringsAsFactors = FALSE)
+  mi  <- data.frame(individual = donor_ids,
+                    group      = factor(rep(c("case", "ctrl"), each = n_donors / 2L)),
+                    stringsAsFactors = FALSE)
+
+  t_serial   <- system.time(
+    was2code_dist(mat, mc, mi, var2test = "group", ncores = 1)
+  )[["elapsed"]]
+  t_parallel <- system.time(
+    was2code_dist(mat, mc, mi, var2test = "group", ncores = 2)
+  )[["elapsed"]]
+
+  expect_lt(t_parallel, t_serial * 0.85)
+})

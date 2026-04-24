@@ -25,8 +25,8 @@ was2code_lfc <- function(dist_list, case_idx, control_idx) {
       
       numerator <- mean(tmp[case_idx, control_idx], na.rm = TRUE)
       
-      sd1 <- sd(tmp[case_idx, case_idx], na.rm = TRUE)
-      sd2 <- sd(tmp[control_idx, control_idx], na.rm = TRUE)
+      sd1 <- stats::sd(tmp[case_idx, case_idx], na.rm = TRUE)
+      sd2 <- stats::sd(tmp[control_idx, control_idx], na.rm = TRUE)
       sd1_adj <- sd1 / sqrt(length(case_idx))
       sd2_adj <- sd2 / sqrt(length(control_idx))
       denominator <- sqrt(sd1_adj^2 + sd2_adj^2)

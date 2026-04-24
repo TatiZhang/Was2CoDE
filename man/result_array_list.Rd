@@ -7,9 +7,9 @@
 result_array_list(dist_array_list, meta_ind)
 }
 \arguments{
-\item{dist_array_list}{}
+\item{dist_array_list}{A list of distance arrays, one per gene (output of \code{was2code_dist()}).}
 
-\item{meta_ind}{}
+\item{meta_ind}{A data frame with one row per donor; must contain an \code{individual} column.}
 }
 \value{
 A list of 3-dimensional arrays, one for each metric (distance, location, location_sign, size, size_sign, shape).

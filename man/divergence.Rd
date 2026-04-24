@@ -12,6 +12,8 @@ divergence(a, b, p = 2, verbose = 0)
 \item{b}{Numeric (gene expressions) vector.}
 
 \item{p}{Integer, power parameter for the Wasserstein distance.}
+
+\item{verbose}{Integer verbosity level (0 = silent).}
 }
 \value{
 A numeric vector containing four divergence metrics: distance, location difference,

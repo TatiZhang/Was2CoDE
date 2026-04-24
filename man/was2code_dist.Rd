@@ -8,7 +8,6 @@ was2code_dist(
   count_input,
   meta_cell,
   meta_ind,
-  var_per_cell,
   var2test,
   ncores = 2,
   k = NULL,
@@ -16,23 +15,36 @@ was2code_dist(
 )
 }
 \arguments{
-\item{count_input}{A count matrix (genes x cells)}
+\item{count_input}{A numeric matrix (genes x cells) of preprocessed
+expression values. Must have row names (gene IDs) and column names
+(cell IDs).}
 
-\item{meta_cell}{Cell-level metadata including 'individual' and 'cell_id'}
+\item{meta_cell}{A data.frame with one row per cell. Must contain columns
+\code{cell_id} and \code{individual}. Rows must be in the same order as
+the columns of \code{count_input}.}
 
-\item{meta_ind}{Individual-level metadata including 'individual' and test variable}
+\item{meta_ind}{A data.frame with one row per donor. Must contain columns
+\code{individual} and the column named by \code{var2test}.}
 
-\item{var_per_cell}{Variable to normalize per cell (e.g., "nCount_RNA")}
+\item{var2test}{Name of the grouping variable in \code{meta_ind} (must be
+a factor or coercible to one, with at least two levels).}
 
-\item{var2test}{Binary variable to test at the individual level}
+\item{ncores}{Number of cores for parallelization (default \code{2}).}
 
-\item{ncores}{Number of cores to use for parallelization}
+\item{k}{Maximum number of same-group and opposite-group donors to compare
+each donor against. \code{NULL} compares against all donors (default
+\code{NULL}).}
 
-\item{k}{Number of opposite-group individuals to compare each person with (default = NULL for all)}
+\item{verbose}{Integer verbosity level: 0 = silent, 1 = log donor values,
+2+ = step-level messages (default \code{0}).}
 }
 \value{
-A list of 3D distance arrays (one per gene)
+A named list of length equal to the number of genes. Each element
+is a 3D numeric array (donors x donors x 4) with named slices:
+\code{was2}, \code{location}, \code{size}, and \code{shape}.
 }
 \description{
-Compute Wasserstein-2 Distance Between Individuals
+Computes pairwise Wasserstein-2 distances across donors for each gene.
+Expression values are assumed to be already denoised and normalized; no
+transformation or residualization is applied internally.
 }

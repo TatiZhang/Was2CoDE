@@ -1,8 +1,8 @@
 
 compute_gsea_overlap <- function(file_path1, file_path2, p_thresh = 0.05) {
   # Read the CSV files
-  df1 <- read.csv(file_path1)
-  df2 <- read.csv(file_path2)
+  df1 <- utils::read.csv(file_path1)
+  df2 <- utils::read.csv(file_path2)
   
   # enforce same ordering of pathways
   rownames(df1) <- df1$ID

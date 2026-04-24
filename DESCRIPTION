@@ -1,6 +1,6 @@
 Package: Was2CoDE
 Title: Statistical tool using Was2CoDE method and Was-2 decomposition
-Version: 0.0.0.9028
+Version: 0.0.1.0000
 Authors@R: 
     person("Tati", "Zhang", email = "Wenjiz1@uw.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0007-8949-5933"))
@@ -9,27 +9,28 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 URL: https://tatizhang.github.io/Was2CoDE/
 Depends: 
     R (>= 3.5)
-Imports: 
-    DESeq2,
-    dplyr,
-    doRNG,
-    doParallel,
-    foreach,
-    ggplot2, 
+Imports:
+    ggplot2,
     ggrepel,
     Matrix,
     stats,
     transport,
-    eSVD2,
-    EnhancedVolcano
+    utils
 Suggests:
+    data.table,
+    DESeq2,
+    dreamlet,
+    EnhancedVolcano,
+    eSVD2,
+    nebula,
+    Rcpp,
+    Seurat,
+    SeuratObject,
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown,
-    Rcpp,
-    data.table
+    rmarkdown
 VignetteBuilder: knitr

@@ -17,10 +17,6 @@ arrange_genes_by_donors <- function(count_matrix, meta_ind, meta_cell) {
   n_gene <- nrow(count_matrix)
   gene_ids <- rownames(count_matrix)
   
-  # Skip parallel and use sequential processing
-  # This version doesn't attempt parallel processing which is causing problems
-  foreach::registerDoSEQ()
-  
   # Pre-compute the cell indices for each individual to avoid recalculating
   individual_cells <- list()
   for (ind in meta_ind$individual) {

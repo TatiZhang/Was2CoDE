@@ -14,8 +14,10 @@
 #'   Used to construct column names (e.g., "edgeR" looks for "edgeR_logFC" and "edgeR_pval").
 #' @param bool_capped Logical indicating whether to cap extreme values. Currently unused
 #'   but values are automatically capped at 97.5% quantile for visualization.
-#' @param bool_multtestadjust Logical indicating whether the draw the dotted lines at the nominal or 
+#' @param bool_multtestadjust Logical indicating whether the draw the dotted lines at the nominal or
 #'   multiple-test-corrected pvalues (default).
+#' @param bool_replaceNA Logical; if TRUE, replace NA logFC with 0 and NA pval with 1 instead of dropping rows.
+#' @param padj_cutoff Numeric FDR threshold for significance (default 0.05).
 #' @param highlight_features Character vector of gene names to highlight in red.
 #'   If NULL (default), genes significant in both methods (FDR < 0.05) will be highlighted.
 #'
@@ -149,21 +151,22 @@ plot_signed_logpval <- function(df,
   }
   
   # Plot
+  highlight <- label <- NULL
   p <- ggplot2::ggplot(ggplot_df, ggplot2::aes(x = method1, y = method2)) +
     ggplot2::geom_hline(yintercept = 0, linewidth = 0.5, color = "gray") +
     ggplot2::geom_vline(xintercept = 0, linewidth = 0.5, color = "gray") +
     ggplot2::geom_rect(data = ggplot_df[1, ],
                        ggplot2::aes(xmin = x_fdrcutoff, 
-                                    xmax = x_limit[2], 
+                                    xmax = Inf, 
                                     ymin = y_fdrcutoff, 
-                                    ymax = y_limit[2]),
+                                    ymax = Inf),
                        fill = grDevices::rgb(135, 50, 255, maxColorValue = 255), 
                        alpha = 0.2, 
                        inherit.aes = FALSE) +
     ggplot2::geom_rect(data = ggplot_df[1, ],
-                       ggplot2::aes(xmin = x_limit[1], 
+                       ggplot2::aes(xmin = -Inf, 
                                     xmax = -x_fdrcutoff, 
-                                    ymin = y_limit[1], 
+                                    ymin = -Inf, 
                                     ymax = -y_fdrcutoff),
                        fill = grDevices::rgb(135, 50, 255, maxColorValue = 255), 
                        alpha = 0.2, 

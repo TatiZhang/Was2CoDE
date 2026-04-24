@@ -5,11 +5,16 @@ plot_volcano <- function(df,
                          padj_cutoff = 0.05,
                          xlim_quantile = c(0.005, 0.995),
                          ymax_quantile = 0.995){
+  if (!requireNamespace("EnhancedVolcano", quietly = TRUE))
+    stop("Package 'EnhancedVolcano' is required. Install it with BiocManager::install('EnhancedVolcano').")
   stopifnot(length(rownames(df)) == nrow(df))
   
   # replace NA
   idx <- which(is.na(df[,pvalue_variable]))
   if(length(idx) > 0) df[idx,pvalue_variable] <- 1
+  
+  idx <- which(df[,pvalue_variable] == 0)
+  if(length(idx) > 0) df[idx,pvalue_variable] <- min(df[-idx,pvalue_variable])
   
   padj_vec <- stats::p.adjust(df[,pvalue_variable], 
                               method = "BH")
@@ -26,6 +31,8 @@ plot_volcano <- function(df,
   xlim <- stats::quantile(df[,logFC_variable], 
                           probs = xlim_quantile,
                           na.rm = TRUE)
+  df[,logFC_variable] <- pmax(df[,logFC_variable], xlim[1])
+  df[,logFC_variable] <- pmin(df[,logFC_variable], xlim[2])
   
   ymax <- stats::quantile(-log10(df[,pvalue_variable]), 
                           probs = ymax_quantile)
