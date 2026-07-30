@@ -7,4 +7,9 @@
 ^LICENSE\.md$
 ^\.claude$
 ^CLAUDE\.md$
+^CLAUDE_.*\.md$
+^HISTORY_.*\.md$
+^brainstorming_.*\.md$
+^additional_context$
+^\.githooks$
 ^raw$
