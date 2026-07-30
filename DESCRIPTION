@@ -30,6 +30,7 @@ Suggests:
     Rcpp,
     Seurat,
     SeuratObject,
+    SummarizedExperiment,
     testthat (>= 3.0.0),
     knitr,
     rmarkdown
