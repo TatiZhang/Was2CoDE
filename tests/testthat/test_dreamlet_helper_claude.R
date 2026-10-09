@@ -182,3 +182,66 @@ test_that("dreamlet_helper stops when a requested level is absent from the colum
                              case_control_levels = c("control", "control")),
                "case_control_levels")
 })
+
+## Bug D2: when a covariate varied within a donor, `dreamlet_helper()` pasted
+## it onto the donor id and aggregated on the result. For a categorical
+## covariate that splits a donor into one sample per level, which is what
+## `build_pseudobulk()` does through `group.by` as well. For a cell-level
+## numeric such as the UMI count it made one "sample" per cell, and dreamlet
+## then ran a cell-level test under a donor-level name, with no error and
+## plausible-looking output. `build_pseudobulk()` refuses such a covariate; the
+## dreamlet wrapper now goes through the same check.
+test_that("dreamlet_helper rejects a numerical covariate that is not donor-constant", {
+  skip_if_not_installed("dreamlet")
+  skip_if_not_installed("Seurat")
+
+  sim <- .simulate_donor_seurat(n_donor_per_group = 3, n_cell_per_donor = 30,
+                                n_gene = c(de = 2, null = 5, noisy = 2),
+                                seed = 48)
+  skip_if(is.null(sim))
+
+  expect_error(.run_dreamlet(sim$seurat_obj, numerical_vars = "n_umi"),
+               "n_umi")
+})
+
+## Bug D2, second face: the same augmentation applied to the case/control
+## column itself, so a donor appearing in both arms was split into a case
+## sample and a control sample rather than reported. A donor in both arms is
+## a metadata error, and every wrapper must say so.
+test_that("dreamlet_helper rejects a donor that appears in both arms", {
+  skip_if_not_installed("dreamlet")
+  skip_if_not_installed("Seurat")
+
+  sim <- .simulate_donor_seurat(n_donor_per_group = 3, n_cell_per_donor = 30,
+                                n_gene = c(de = 2, null = 5, noisy = 2),
+                                seed = 49)
+  skip_if(is.null(sim))
+  obj <- sim$seurat_obj
+  flip_idx <- which(obj@meta.data$donor == "D01")[1:5]
+  obj@meta.data$diagnosis[flip_idx] <- "case"
+
+  expect_error(.run_dreamlet(obj), "D01")
+})
+
+## A categorical covariate that varies within a donor is legitimate (a donor
+## sequenced in two batches) and is handled by splitting the donor, the same
+## way `build_pseudobulk()` groups on it. Pin that this path still runs and
+## still orients the contrast.
+test_that("dreamlet_helper still splits a donor on a within-donor categorical covariate", {
+  skip_if_not_installed("dreamlet")
+  skip_if_not_installed("Seurat")
+
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 100,
+                                n_gene = c(de = 6, null = 20, noisy = 10),
+                                seed = 50)
+  skip_if(is.null(sim))
+  obj <- sim$seurat_obj
+  obj@meta.data$batch <- rep(c("b1", "b2"), length.out = ncol(obj))
+
+  res <- .run_dreamlet(obj, categorical_vars = "batch")
+  de_vec <- .de_genes(sim, res)
+
+  expect_gt(length(de_vec), 3)
+  expect_equal(sign(res[de_vec, "logFC"]),
+               unname(sign(sim$true_lfc[de_vec])))
+})

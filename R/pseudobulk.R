@@ -8,14 +8,20 @@
 # design variables that do not vary.  `build_pseudobulk()` is that pipeline;
 # `deseq2_helper()` and `deseq2_tost_helper()` both call it.
 #
-# The second half of the file is the DESeq2 fit-and-extract pair used by
-# `deseq2_tost_helper()`: `.fit_deseq2_mle()` and `.extract_lfc_se()`.  These
-# are kept apart from the TOST arithmetic so that file stays about equivalence
-# testing, and so any future wrapper needing unshrunken (log2FC, SE) per gene
-# can reuse them.  Note `deseq2_helper()` deliberately does NOT use them: it
-# calls `DESeq2::DESeq(dds)` with the package defaults, and routing it through
-# `.fit_deseq2_mle()` would change its console output and couple it to
-# TOST-specific choices.
+# `dreamlet_helper()` cannot share the aggregation: dreamlet's
+# `processAssays()` only accepts the object its own `aggregateToPseudoBulk()`
+# returns (it reads per-sample cell counts and the aggregation parameters from
+# internal slots).  It shares the validation instead: `.check_donor_vars()` and
+# `.check_donor_constant_vars()`.  So does `nebula_helper()`, which has no
+# aggregation at all (NEBULA is cell-level with a donor random effect) and
+# therefore checks only the arm for donor-constancy, not the covariates.
+#
+# The second half of the file is the DESeq2 fit-and-extract pair:
+# `.fit_deseq2_mle()` and `.extract_lfc_se()`.  `deseq2_helper()` uses the
+# first (with DESeq2's own `results()` for p-values); `deseq2_tost_helper()`
+# uses both.  They are kept apart from the TOST arithmetic so that file stays
+# about equivalence testing, and so any future wrapper needing unshrunken
+# (log2FC, SE) per gene can reuse them.
 
 #' Validate the donor / covariate arguments shared by the DE-method wrappers
 #'
@@ -44,6 +50,57 @@
   invisible(TRUE)
 }
 
+#' Check that metadata variables are constant within each donor
+#'
+#' A pseudobulk sample is a donor, so anything that enters the design must be
+#' a property of the donor.  Two things go wrong otherwise, both silently: a
+#' donor whose case/control status varies is split into a case sample and a
+#' control sample that the model treats as two donors, and a cell-level
+#' numeric (a UMI count, a QC score) carried onto the donor is either
+#' averaged into something that is not a covariate or, if the wrapper splits
+#' on it, turns the test back into a cell-level one.
+#'
+#' @param seurat_obj A `Seurat` object.
+#' @param id_var Name of the donor id metadata column.
+#' @param variables Character vector of metadata column names to check, or
+#'   `NULL`.
+#' @param tol Numerical variables may vary within a donor by up to this
+#'   amount, so a value stored at two precisions still passes.
+#'
+#' @return Invisibly `TRUE`; called for its side effect of erroring.
+#' @noRd
+.check_donor_constant_vars <- function(seurat_obj,
+                                       id_var,
+                                       variables,
+                                       tol = 1e-4) {
+  meta_df <- seurat_obj@meta.data
+  donor_vec <- as.character(meta_df[, id_var])
+
+  for (variable in variables) {
+    value_vec <- meta_df[, variable]
+    if (is.numeric(value_vec)) {
+      spread_vec <- tapply(value_vec, donor_vec, function(x) {
+        x <- x[!is.na(x)]
+        if (length(x) == 0) 0 else diff(range(x))
+      })
+      bad_vec <- names(spread_vec)[spread_vec >= tol]
+    } else {
+      count_vec <- tapply(as.character(value_vec), donor_vec, function(x) {
+        length(unique(x[!is.na(x)]))
+      })
+      bad_vec <- names(count_vec)[count_vec > 1]
+    }
+    if (length(bad_vec) > 0) {
+      stop("Person (", paste0(bad_vec, collapse = ", "),
+           ") violates the variable (", variable,
+           "): it takes more than one value within that donor, so it is not ",
+           "a donor-level variable")
+    }
+  }
+
+  invisible(TRUE)
+}
+
 #' Aggregate a Seurat object to one pseudobulk count vector per donor
 #'
 #' Summing nuclei per donor before testing is what makes the downstream test
@@ -60,11 +117,21 @@
                                     case_control_var,
                                     categorical_vars,
                                     id_var) {
+  group_vars <- c(id_var, case_control_var, categorical_vars)
   pseudo_seurat <- Seurat::AggregateExpression(seurat_obj,
                                                assays = "RNA",
                                                return.seurat = TRUE,
-                                               group.by = c(id_var, case_control_var, categorical_vars))
+                                               group.by = group_vars)
   Seurat::VariableFeatures(pseudo_seurat) <- Seurat::VariableFeatures(seurat_obj)
+
+  # `AggregateExpression()` ignores a grouping variable with a single value
+  # and leaves it out of the returned metadata.  Put it back, so a covariate
+  # that is constant across the cohort reaches `.prepare_pseudobulk_metadata()`
+  # and is dropped from the design there, rather than failing a column subset.
+  for (variable in setdiff(group_vars, colnames(pseudo_seurat@meta.data))) {
+    pseudo_seurat@meta.data[, variable] <- rep(unique(as.character(seurat_obj@meta.data[, variable]))[1],
+                                               ncol(pseudo_seurat))
+  }
 
   pseudo_seurat
 }
@@ -196,6 +263,11 @@ build_pseudobulk <- function(seurat_obj,
                     categorical_vars = categorical_vars,
                     id_var = id_var,
                     numerical_vars = numerical_vars)
+  # `group.by` below would split a donor found in both arms into two samples
+  # rather than complain; numerical covariates are checked when attached.
+  .check_donor_constant_vars(seurat_obj = seurat_obj,
+                             id_var = id_var,
+                             variables = case_control_var)
 
   pseudo_seurat <- .pseudobulk_from_seurat(seurat_obj = seurat_obj,
                                            case_control_var = case_control_var,

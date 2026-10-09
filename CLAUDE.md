@@ -42,7 +42,18 @@ This package lives inside a larger `tati/git/` folder alongside the analysis, pa
 After detecting the user, **read that person's `CLAUDE_[name].md` immediately** before doing any other work — it holds the current project state and restores context in ~30 seconds. Do **not** read `HISTORY_[name].md` at startup; it is the append-only session log, consulted only on demand when deep history is needed. If no match is found, ask who the user is and create a new `CLAUDE_[name].md` via `/project-state`. Fill in a collaborator's login the first time they run a session here.
 
 ## Wiki
-`../Was2CoDE_wiki/` (`/Users/kevinlin/Library/CloudStorage/Dropbox/Collaboration-and-People/archive/tati/git/Was2CoDE_wiki`) is the project's **second brain** (178 pages of ingested sources + synthesis). Pages most relevant to this package: `[[was2code-method]]`, `[[analysis-donors-vs-cells-power]]`, `[[analysis-deg-count-variability]]`, `[[analysis-reproducible-microglia-genes]]`, `[[meta-analysis-de]]`. Run `/wiki-query` to query it and `/wiki-ingest` to add sources; `/brainstorm` and `/project-state` detect it from this `## Wiki` pointer.
+`../Was2CoDE_wiki/` (`WIKI_ROOT`; per-machine path in your `CLAUDE_[name].md`) is the project's **second brain** (178 pages of ingested sources + synthesis). Pages most relevant to this package: `[[was2code-method]]`, `[[analysis-donors-vs-cells-power]]`, `[[analysis-deg-count-variability]]`, `[[analysis-reproducible-microglia-genes]]`, `[[meta-analysis-de]]`. Run `/wiki-query` to query it and `/wiki-ingest` to add sources; `/brainstorm` and `/project-state` detect it from this `## Wiki` pointer.
+
+## External Locations
+Names are project-wide; the path on each machine lives in the owner's `CLAUDE_[name].md`.
+
+| Name | Purpose | Copy semantics |
+|---|---|---|
+| `ANALYSIS_REPO` | `../Was2CoDE_analysis/`, the only consumer of this package | git, per-person clone |
+| `PAPER_REPO` | `../overleaf_tati_subject-de_paper/` | git, per-person clone |
+| `WIKI_ROOT` | `../Was2CoDE_wiki/`, the project wiki | git, per-person clone |
+| `ESVD2_SOURCE` | Kevin's checkout of the eSVD2 package source (`github.com/linnykos/eSVD2`). `esvd_helper()` requires eSVD2 >= 1.2.0, which as of 2026-10-09 is not yet on CRAN or installed anywhere; install it from this checkout or from GitHub | per-person copy |
+| `COMPUTE_OUT` | analysis outputs on the Bayes server | shared storage |
 
 ## Post-Prompt Update Instructions
 After completing each user prompt, run `/project-state`. It will:

@@ -569,3 +569,55 @@ test_that(".extract_lfc_se carries the t degrees of freedom when use_t was set",
   # 12 pseudobulk samples minus the intercept and the case/control coefficient
   expect_equal(unique(est$df), 10)
 })
+
+# ---------------------------------------------------------------------------
+# build_pseudobulk on degenerate covariates (2026-10-09)
+# ---------------------------------------------------------------------------
+
+## Bug P1: `Seurat::AggregateExpression()` silently drops a grouping variable
+## with a single value ("will be ignored"), so a categorical covariate that is
+## constant across the cohort (a single-sex cohort, or a batch that is constant
+## within one cell type) never reached `.prepare_pseudobulk_metadata()`, which
+## is the step meant to drop it from the design. Instead the column subset
+## errored with "undefined columns selected". The unit test of
+## `.prepare_pseudobulk_metadata()` passed because it built the metadata by
+## hand, with the column present.
+test_that("build_pseudobulk drops a categorical covariate that is constant across the cohort", {
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 3, n_cell_per_donor = 20,
+                               n_gene = c(de = 2, null = 3, noisy = 1), seed = 37)
+  skip_if(is.null(sim))
+  obj <- sim$seurat_obj
+  obj@meta.data$sex <- "F"
+
+  res <- build_pseudobulk(seurat_obj = obj,
+                          case_control_levels = c("control", "case"),
+                          case_control_var = "diagnosis",
+                          categorical_vars = "sex",
+                          id_var = "donor",
+                          numerical_vars = "age")
+
+  expect_equal(colnames(res$metadata), c("age", "diagnosis"))
+  expect_equal(ncol(res$mat), length(sim$donor_group))
+})
+
+## A donor in both arms is a metadata error. `group.by` would otherwise split
+## that donor into a case sample and a control sample, and the model would
+## treat the two halves as independent donors.
+test_that("build_pseudobulk rejects a donor that appears in both arms", {
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 3, n_cell_per_donor = 20,
+                               n_gene = c(de = 2, null = 3, noisy = 1), seed = 38)
+  skip_if(is.null(sim))
+  obj <- sim$seurat_obj
+  flip_idx <- which(obj@meta.data$donor == "D01")[1:5]
+  obj@meta.data$diagnosis[flip_idx] <- "case"
+
+  expect_error(build_pseudobulk(seurat_obj = obj,
+                                case_control_levels = c("control", "case"),
+                                case_control_var = "diagnosis",
+                                categorical_vars = NULL,
+                                id_var = "donor",
+                                numerical_vars = NULL),
+               "D01")
+})
