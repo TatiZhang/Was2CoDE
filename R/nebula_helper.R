@@ -85,5 +85,20 @@ nebula_helper <- function(case_control_levels, # Control and then Case
                                cpc = 0,
                                mincp = 0)
 
-  nebula_res
+  # `results` is the format shared by the four DE wrappers; see
+  # unify_de_results_claude.R. NEBULA's coefficients are on the natural-log
+  # scale (a log-link NB model), and the other three methods report log2, so
+  # the estimate and its SE are divided by log(2); the p-value is unchanged.
+  # The releveling above guarantees the coefficient is named by the case level.
+  coef_name <- paste0(case_control_var, case_control_levels[2])
+  summary_df <- nebula_res$summary
+  results_df <- .unify_de_results(
+    gene = summary_df$gene,
+    logFC = summary_df[[paste0("logFC_", coef_name)]] / log(2),
+    se = summary_df[[paste0("se_", coef_name)]] / log(2),
+    pvalue = summary_df[[paste0("p_", coef_name)]]
+  )
+
+  list(results = results_df,
+       original = nebula_res)
 }

@@ -14,7 +14,7 @@ context("Test dreamlet_helper")
                     id_var = "donor",
                     numerical_vars = numerical_vars,
                     seurat_obj = seurat_obj)))
-  res <- as.data.frame(res)
+  res <- as.data.frame(res$original)
   rownames(res) <- res$ID
 
   res
@@ -243,5 +243,42 @@ test_that("dreamlet_helper still splits a donor on a within-donor categorical co
 
   expect_gt(length(de_vec), 3)
   expect_equal(sign(res[de_vec, "logFC"]),
+               unname(sign(sim$true_lfc[de_vec])))
+})
+
+## The unified `results` table re-labels dreamlet's `topTable()`. It reports
+## no standard error, so `se` is recovered as logFC / t; pin that this is the
+## SE behind the reported p-value by rebuilding the moderated t from it.
+test_that("dreamlet_helper's unified results match the topTable", {
+  skip_if_not_installed("dreamlet")
+  skip_if_not_installed("Seurat")
+
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 60,
+                                n_gene = c(de = 6, null = 20, noisy = 10),
+                                seed = 40)
+  skip_if(is.null(sim))
+
+  res <- suppressWarnings(suppressMessages(
+    dreamlet_helper(case_control_levels = c("control", "case"),
+                    case_control_var = "diagnosis",
+                    categorical_vars = NULL,
+                    id_var = "donor",
+                    numerical_vars = NULL,
+                    seurat_obj = sim$seurat_obj)))
+  expect_equal(names(res), c("results", "original"))
+
+  results_df <- res$results
+  original <- as.data.frame(res$original)
+  expect_equal(colnames(results_df), c("gene", "logFC", "se", "pvalue", "padj"))
+  expect_equal(results_df$gene, as.character(original$ID))
+  expect_equal(results_df$logFC, original$logFC)
+  expect_equal(results_df$logFC / results_df$se, original$t)
+  expect_true(all(results_df$se > 0))
+  expect_equal(results_df$pvalue, original$P.Value)
+  expect_equal(results_df$padj, original$adj.P.Val)
+
+  de_vec <- intersect(names(sim$gene_class)[sim$gene_class == "de"],
+                      results_df$gene)
+  expect_equal(sign(results_df[de_vec, "logFC"]),
                unname(sign(sim$true_lfc[de_vec])))
 })

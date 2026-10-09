@@ -58,9 +58,19 @@
 #'                          \code{k}, \code{max_iter}, \code{bool_diet} or
 #'                          \code{cap_multiplier}.
 #'
-#' @returns Either \code{NA} (the cohort was rejected; the warning says which
-#' filter fired) or an \code{eSVD} object with the added element
-#' \code{gene_status}; see \code{?eSVD2::eSVD_helper}.
+#' @returns A list with two elements:
+#' \describe{
+#'   \item{\code{results}}{A \code{data.frame} with one row per gene of
+#'   \code{seurat_obj} and columns \code{gene}, \code{logFC}, \code{se}
+#'   (both \eqn{\log_2}, from \code{eSVD2::report_results()}), \code{pvalue}
+#'   and \code{padj} (BH); the format shared by the four DE wrappers. All-zero
+#'   genes have \code{NA} in every statistic, including \code{padj} (the
+#'   \code{eSVD} object gives them an FDR of 1). When the cohort was rejected,
+#'   every gene's statistics are \code{NA}.}
+#'   \item{\code{original}}{Either \code{NA} (the cohort was rejected; the
+#'   warning says which filter fired) or the \code{eSVD} object with the added
+#'   element \code{gene_status}; see \code{?eSVD2::eSVD_helper}.}
+#' }
 #' @noRd
 esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. Can be NULL
                         case_control_levels, # Control and then Case
@@ -105,19 +115,46 @@ esvd_helper <- function(batch_var_prefix, # a variable inside categorical_vars. 
     min_ids <- 0
   }
 
-  eSVD2::eSVD_helper(batch_var_prefix = batch_var_prefix,
-                     case_control_levels = case_control_levels,
-                     case_control_var = case_control_var,
-                     categorical_vars = categorical_vars,
-                     id_var = id_var,
-                     numerical_vars = numerical_vars,
-                     seurat_obj = seurat_obj,
-                     intermediate_save = intermediate_save,
-                     min_cells = min_cells,
-                     min_cells_casecontrol = min_cells_casecontrol,
-                     min_cells_per_id = min_cells_per_id,
-                     min_ids = min_ids,
-                     min_ids_per_arm = min_ids_per_arm,
-                     verbose = verbose,
-                     ...)
+  esvd_res <- eSVD2::eSVD_helper(batch_var_prefix = batch_var_prefix,
+                                 case_control_levels = case_control_levels,
+                                 case_control_var = case_control_var,
+                                 categorical_vars = categorical_vars,
+                                 id_var = id_var,
+                                 numerical_vars = numerical_vars,
+                                 seurat_obj = seurat_obj,
+                                 intermediate_save = intermediate_save,
+                                 min_cells = min_cells,
+                                 min_cells_casecontrol = min_cells_casecontrol,
+                                 min_cells_per_id = min_cells_per_id,
+                                 min_ids = min_ids,
+                                 min_ids_per_arm = min_ids_per_arm,
+                                 verbose = verbose,
+                                 ...)
+
+  # `results` is the format shared by the four DE wrappers; see
+  # unify_de_results_claude.R. A rejected cohort still gets a row per gene, so
+  # a caller can stack the four methods' tables without a special case.
+  if(!inherits(esvd_res, "eSVD")){
+    gene_vec <- rownames(seurat_obj)
+    na_vec <- rep(NA_real_, length(gene_vec))
+    results_df <- .unify_de_results(gene = gene_vec,
+                                    logFC = na_vec,
+                                    se = na_vec,
+                                    pvalue = na_vec)
+  } else {
+    report_df <- eSVD2::report_results(esvd_res)
+    # eSVD2 pads an all-zero gene with p = 1 so its own `fdr_vec` needs no NA
+    # handling, but its BH counted only the analyzed genes. Counting the
+    # padded genes here would inflate every other gene's `padj`, so they are
+    # NA, and `padj` then equals eSVD2's `fdr_vec` on the analyzed genes.
+    pvalue_vec <- report_df$pvalue
+    pvalue_vec[esvd_res$gene_status[report_df$genes] != "analyzed"] <- NA_real_
+    results_df <- .unify_de_results(gene = report_df$genes,
+                                    logFC = report_df$logFC,
+                                    se = report_df$logFC_se,
+                                    pvalue = pvalue_vec)
+  }
+
+  list(results = results_df,
+       original = esvd_res)
 }

@@ -129,3 +129,12 @@
 - Kept: `cpc = 0, mincp = 0` (every gene tested, matching the other wrappers), `offset = "nCount_RNA"`, `model = "NBGMM"`, nebula's default `ncore = 2`.
 - `/code-review` flagged passing `verbose` to `nebula::scToNeb()`: nebula 1.5.8 accepts it but older versions do not, and it only guards a message the helper never triggers, so it was dropped. The review's other point (length-2 check on `case_control_levels`) is covered by `.check_donor_vars()`.
 - `tests/testthat/test_nebula_helper_claude.R`: 7 tests, 23 expectations, written first and watched failing. Runtime 77 s for the file.
+
+### [2026-10-09] (Session 12 — unified return format for the four DE helpers)
+- Request (Kevin): every DE helper returns `list(results, original)`, where `results` is one shared per-gene table and `original` is the method's native object. The format lives in one internal function, `.unify_de_results()`, in the new `R/unify_de_results_claude.R`. Its columns are `gene, logFC, se, pvalue, padj`.
+- Decision (Kevin): all `logFC`/`se` values are log2. NEBULA's natural-log coefficients are divided by `log(2)`. DESeq2, dreamlet, and eSVD2 1.2.0 (`report_results()` `logFC`/`logFC_se`) are already log2.
+- Decision (Kevin): `padj` is plain BH over the non-NA p-values for every method. For DESeq2 this replaces its padj, which applies BH after independent filtering and so is NA for low-count genes. Unified DESeq2 DEG counts will therefore not match earlier Writeups; DESeq2's padj is still in `original`.
+- dreamlet's `topTable()` has no SE column. The unified SE is `logFC / t`, the moderated SE behind its p-value. Unified padj equals its `adj.P.Val` exactly.
+- eSVD2 pads all-zero genes with p = 1 and FDR = 1, but its own BH counts only the analyzed genes. The unified table sets their p-value to NA, so the unified padj equals eSVD2's `fdr_vec` on analyzed genes. A rejected cohort still gets one all-NA row per gene, and `original = NA`.
+- Breaking change: about 30 `Was2CoDE:::*_helper()` call sites in `ANALYSIS_REPO/code/tati/Writeup*` read the native object and now need `$original` (or should switch to `$results`). That repo was not edited.
+- Tests: new `test_unify_de_results_claude.R`; existing helper tests now read `$original`; each helper test file gained a check that `results` agrees with `original`. The six files ran 225 expectations with 0 failures and 0 skips; the eSVD tests ran against eSVD2 1.2.0 from a scratch library.

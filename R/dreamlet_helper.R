@@ -100,5 +100,15 @@ dreamlet_helper <- function(case_control_levels, # Control and then Case
                                     coef = coef_name,
                                     number = Inf)
 
-  return(res_pvalues)
+  # `results` is the format shared by the four DE wrappers; see
+  # unify_de_results_claude.R. `topTable()` reports no standard error, but
+  # limma's moderated t is logFC / SE, so the SE behind the reported p-value
+  # is recovered as logFC / t.
+  results_df <- .unify_de_results(gene = res_pvalues$ID,
+                                  logFC = res_pvalues$logFC,
+                                  se = res_pvalues$logFC / res_pvalues$t,
+                                  pvalue = res_pvalues$P.Value)
+
+  list(results = results_df,
+       original = res_pvalues)
 }

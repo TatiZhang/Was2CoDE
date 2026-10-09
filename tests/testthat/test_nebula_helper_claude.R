@@ -15,7 +15,7 @@ context("Test nebula_helper")
                   id_var = "donor",
                   numerical_vars = numerical_vars,
                   seurat_obj = seurat_obj))))
-  summary_df <- res$summary
+  summary_df <- res$original$summary
   rownames(summary_df) <- summary_df$gene
 
   summary_df
@@ -181,4 +181,41 @@ test_that("nebula_helper stops when a requested level is absent from the column"
                "case_control_levels")
   expect_error(.run_nebula(sim$seurat_obj, case_control_levels = c("control", "control")),
                "case_control_levels")
+})
+
+## NEBULA reports natural-log coefficients, while DESeq2, dreamlet and eSVD2
+## report log2, so the unified `logFC` and `se` are divided by log(2). Pin the
+## conversion (a missed conversion would understate every NEBULA fold change
+## by 31% beside the other methods) and that the p-value is untouched.
+test_that("nebula_helper's unified results are the case coefficient on the log2 scale", {
+  skip_if_not_installed("nebula")
+  skip_if_not_installed("Seurat")
+
+  sim <- .simulate_nebula_seurat(40)
+  skip_if(is.null(sim))
+
+  res <- NULL
+  utils::capture.output(res <- suppressWarnings(suppressMessages(
+    nebula_helper(case_control_levels = c("control", "case"),
+                  case_control_var = "diagnosis",
+                  categorical_vars = "sex",
+                  id_var = "donor",
+                  numerical_vars = NULL,
+                  seurat_obj = sim$seurat_obj))))
+  expect_equal(names(res), c("results", "original"))
+
+  results_df <- res$results
+  summary_df <- res$original$summary
+  expect_equal(colnames(results_df), c("gene", "logFC", "se", "pvalue", "padj"))
+  expect_equal(results_df$gene, summary_df$gene)
+  expect_equal(results_df$logFC * log(2), summary_df$logFC_diagnosiscase)
+  expect_equal(results_df$se * log(2), summary_df$se_diagnosiscase)
+  expect_equal(results_df$pvalue, summary_df$p_diagnosiscase)
+  expect_equal(results_df$padj,
+               stats::p.adjust(summary_df$p_diagnosiscase, method = "BH"))
+
+  de_vec <- intersect(names(sim$gene_class)[sim$gene_class == "de"],
+                      results_df$gene)
+  expect_equal(sign(results_df[de_vec, "logFC"]),
+               unname(sign(sim$true_lfc[de_vec])))
 })

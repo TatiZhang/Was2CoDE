@@ -432,7 +432,7 @@ test_that("deseq2_tost can reuse deseq2_helper's estimates without a second fit"
                           categorical_vars = NULL,
                           id_var = "donor",
                           numerical_vars = NULL,
-                          seurat_obj = sim$seurat_obj)
+                          seurat_obj = sim$seurat_obj)$original
 
   # deseq2_helper() already returns the unshrunken log2FC and its standard
   # error, which is everything the equivalence test needs
@@ -474,7 +474,7 @@ test_that("crossing deseq2_helper with deseq2_tost recovers the four-way partiti
                           categorical_vars = NULL,
                           id_var = "donor",
                           numerical_vars = NULL,
-                          seurat_obj = sim$seurat_obj)
+                          seurat_obj = sim$seurat_obj)$original
   res_tost <- deseq2_tost(data.frame(lfc = res_de$log2FoldChange,
                                      se = res_de$lfcSE,
                                      row.names = rownames(res_de)),

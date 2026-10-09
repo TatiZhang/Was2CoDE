@@ -23,6 +23,14 @@ deseq2_helper <- function(case_control_levels, # Control and then Case
   deseq2_res <- DESeq2::results(dds,
                                 name = paste0(case_control_var, "_", case_control_levels[2], "_vs_", case_control_levels[1]))
 
-  return(deseq2_res)
+  # `results` is the format shared by the four DE wrappers; see
+  # unify_de_results_claude.R. Its `padj` is plain BH, not DESeq2's padj
+  # (which is BH after independent filtering); that one is in `original`.
+  results_df <- .unify_de_results(gene = rownames(deseq2_res),
+                                  logFC = deseq2_res$log2FoldChange,
+                                  se = deseq2_res$lfcSE,
+                                  pvalue = deseq2_res$pvalue)
 
+  list(results = results_df,
+       original = deseq2_res)
 }

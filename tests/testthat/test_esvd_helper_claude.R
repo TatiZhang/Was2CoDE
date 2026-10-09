@@ -24,7 +24,7 @@ context("Test esvd_helper")
                 seurat_obj = seurat_obj,
                 k = 2,
                 max_iter = max_iter,
-                ...)))
+                ...)))$original
 }
 
 # Rebuild the Seurat object with one gene's counts zeroed, so the object has
@@ -111,7 +111,7 @@ test_that("esvd_helper returns NA with a warning when an arm has one donor", {
                 k = 2,
                 max_iter = 3)),
     regexp = "min_ids_per_arm")
-  expect_true(length(res) == 1 && is.na(res))
+  expect_true(length(res$original) == 1 && is.na(res$original))
 })
 
 ## `bool_check_donors = FALSE` is the only switch the wrapper adds on top of
@@ -153,7 +153,7 @@ test_that("bool_check_donors = FALSE disables every cohort filter", {
                 k = 2,
                 max_iter = 3)),
     regexp = "min_ids_per_arm")
-  expect_true(length(res_one_arm) == 1 && is.na(res_one_arm))
+  expect_true(length(res_one_arm$original) == 1 && is.na(res_one_arm$original))
 })
 
 ## The wrapper must add nothing of its own: the same call through
@@ -205,4 +205,68 @@ test_that("esvd_helper orients the log fold change case-vs-control", {
                  info = label)
     expect_gt(stats::median(abs(report_df[de_vec, "logFC"])), 1)
   }
+})
+
+## The unified `results` table re-labels `eSVD2::report_results()`, with one
+## deliberate change: eSVD2 pads an all-zero gene with p = 1 and FDR = 1, but
+## its BH counted only the analyzed genes. The unified table gives that gene
+## NA instead, so plain BH over the non-NA p-values reproduces eSVD2's own
+## `fdr_vec` exactly on the analyzed genes.
+test_that("esvd_helper's unified results match report_results and eSVD2's FDR", {
+  .skip_unless_esvd2()
+  sim <- .simulate_esvd_seurat()
+  skip_if(is.null(sim))
+  seurat_obj <- .zero_one_gene(sim$seurat_obj, "noisy-002")
+
+  res <- suppressWarnings(suppressMessages(
+    esvd_helper(batch_var_prefix = NULL,
+                case_control_levels = c("control", "case"),
+                case_control_var = "diagnosis",
+                categorical_vars = "sex",
+                id_var = "donor",
+                numerical_vars = "age",
+                seurat_obj = seurat_obj,
+                k = 2,
+                max_iter = 3)))
+  expect_equal(names(res), c("results", "original"))
+  expect_true(inherits(res$original, "eSVD"))
+
+  results_df <- res$results
+  report_df <- suppressWarnings(eSVD2::report_results(res$original))
+  expect_equal(colnames(results_df), c("gene", "logFC", "se", "pvalue", "padj"))
+  expect_equal(results_df$gene, rownames(seurat_obj))
+  expect_equal(results_df$logFC, report_df$logFC)
+  expect_equal(results_df$se, report_df$logFC_se)
+
+  analyzed_vec <- setdiff(results_df$gene, "noisy-002")
+  expect_equal(results_df[analyzed_vec, "pvalue"],
+               unname(report_df[analyzed_vec, "pvalue"]))
+  expect_equal(results_df[analyzed_vec, "padj"],
+               unname(res$original$pvalue_list$fdr_vec[analyzed_vec]))
+  expect_true(all(is.na(results_df["noisy-002",
+                                   c("logFC", "se", "pvalue", "padj")])))
+})
+
+## A rejected cohort returns NA from eSVD2. The unified table still has a row
+## per gene, all NA, so a caller can stack the four methods without a special
+## case for eSVD.
+test_that("esvd_helper returns an all-NA unified table for a rejected cohort", {
+  .skip_unless_esvd2()
+  sim <- .simulate_esvd_seurat(n_donor_per_group = 2, n_cell_per_donor = 30)
+  skip_if(is.null(sim))
+
+  res <- suppressWarnings(suppressMessages(
+    esvd_helper(batch_var_prefix = NULL,
+                case_control_levels = c("control", "case"),
+                case_control_var = "diagnosis",
+                categorical_vars = "sex",
+                id_var = "donor",
+                numerical_vars = "age",
+                seurat_obj = sim$seurat_obj,
+                k = 2,
+                max_iter = 3)))
+
+  expect_true(length(res$original) == 1 && is.na(res$original))
+  expect_equal(res$results$gene, rownames(sim$seurat_obj))
+  expect_true(all(is.na(res$results[, c("logFC", "se", "pvalue", "padj")])))
 })
