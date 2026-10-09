@@ -349,3 +349,223 @@ test_that("build_pseudobulk validates its arguments before doing any work", {
                                 id_var = "donor",
                                 numerical_vars = NULL))
 })
+
+# ---------------------------------------------------------------------------
+# .fit_deseq2_mle
+# ---------------------------------------------------------------------------
+
+test_that(".fit_deseq2_mle builds the design from the metadata columns", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 5, n_cell_per_donor = 60,
+                                n_gene = c(de = 3, null = 10, noisy = 4), seed = 50)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = "sex",
+                                 id_var = "donor",
+                                 numerical_vars = "age")
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata)
+
+  expect_s4_class(dds, "DESeqDataSet")
+  expect_equal(as.character(DESeq2::design(dds)), c("~", "sex + age + diagnosis"))
+  # case/control is the last design term, so its coefficient is the one the
+  # wrappers name as "<var>_<case>_vs_<control>"
+  expect_true("diagnosis_case_vs_control" %in% DESeq2::resultsNames(dds))
+})
+
+test_that(".fit_deseq2_mle fits unshrunken coefficients", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 5, n_cell_per_donor = 60,
+                                n_gene = c(de = 3, null = 10, noisy = 4), seed = 51)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata)
+
+  # betaPrior = FALSE is load-bearing: a zero-centered prior on the log2 fold
+  # change would shrink estimates toward zero, which is anti-conservative for
+  # the downstream equivalence test.  DESeq2 records the choice as an attribute
+  # and refuses altHypothesis = "lessAbs" when it is TRUE.
+  expect_false(attr(dds, "betaPrior"))
+  expect_silent(DESeq2::results(dds, name = "diagnosis_case_vs_control",
+                                lfcThreshold = 1, altHypothesis = "lessAbs"))
+})
+
+test_that(".fit_deseq2_mle propagates use_t as residual degrees of freedom", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 5, n_cell_per_donor = 60,
+                                n_gene = c(de = 3, null = 10, noisy = 4), seed = 52)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+
+  dds_norm <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata, use_t = FALSE)
+  dds_t <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata, use_t = TRUE)
+
+  expect_null(SummarizedExperiment::mcols(dds_norm)$tDegreesFreedom)
+  # 10 pseudobulk samples minus the intercept and the case/control coefficient
+  expect_equal(unique(SummarizedExperiment::mcols(dds_t)$tDegreesFreedom), 8)
+})
+
+# ---------------------------------------------------------------------------
+# .extract_lfc_se
+# ---------------------------------------------------------------------------
+
+test_that(".extract_lfc_se returns DESeq2's unshrunken estimates verbatim", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 80,
+                                n_gene = c(de = 4, null = 15, noisy = 6), seed = 53)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata)
+  est <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                         cooks_filter = FALSE)
+
+  expect_equal(colnames(est),
+               c("base_mean", "lfc", "se", "df", "cooks_outlier"))
+  expect_equal(rownames(est), rownames(pseudobulk$mat))
+  expect_true(all(is.na(est$df)))
+  # the effect and its uncertainty only -- no p-values of any kind
+  expect_false(any(grepl("pvalue|padj", colnames(est))))
+
+  res <- DESeq2::results(dds, name = "diagnosis_case_vs_control",
+                         independentFiltering = FALSE, cooksCutoff = FALSE)
+  expect_equal(est$lfc, res$log2FoldChange)
+  expect_equal(est$se, res$lfcSE)
+  expect_equal(est$base_mean, res$baseMean)
+})
+
+test_that(".extract_lfc_se keeps low-expression genes rather than filtering them", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 80,
+                                n_gene = c(de = 4, null = 15, noisy = 6), seed = 54)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata)
+  est <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                         cooks_filter = FALSE)
+
+  # DESeq2's independent filter is tuned to maximize rejections of the
+  # *difference* null, so it has no business deciding which genes are eligible
+  # for some other test.  With it off, every gene survives with a usable
+  # (lfc, se) however lowly expressed -- discarding is the caller's explicit
+  # base_mean_min decision, made downstream.
+  expect_equal(nrow(est), nrow(pseudobulk$mat))
+  low <- est$base_mean < stats::quantile(est$base_mean, 0.25)
+  expect_gt(sum(low), 0)
+  expect_true(all(!is.na(est$lfc[low])))
+  expect_true(all(!is.na(est$se[low])))
+})
+
+test_that(".extract_lfc_se NAs out genes below base_mean_min", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 80,
+                                n_gene = c(de = 4, null = 15, noisy = 6), seed = 55)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata)
+
+  est_all <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                             cooks_filter = FALSE, base_mean_min = 0)
+  est_filt <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                              cooks_filter = FALSE, base_mean_min = 100)
+
+  low <- est_all$base_mean < 100
+  expect_gt(sum(low), 0)
+  expect_true(all(is.na(est_filt$lfc[low])))
+  expect_true(all(is.na(est_filt$se[low])))
+  # the estimates for retained genes are untouched, and base_mean is always kept
+  expect_equal(est_filt$lfc[!low], est_all$lfc[!low])
+  expect_equal(est_filt$base_mean, est_all$base_mean)
+})
+
+test_that(".extract_lfc_se propagates the Cook's-distance flag onto lfc and se", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 80,
+                                n_gene = c(de = 4, null = 15, noisy = 6), seed = 56)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+  # plant a single wild count in one donor of one gene to trip Cook's cutoff
+  outlier_gene <- rownames(pseudobulk$mat)[1]
+  pseudobulk$mat[outlier_gene, 1] <- as.integer(max(pseudobulk$mat) * 500)
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata)
+
+  est_on <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                            cooks_filter = TRUE)
+  est_off <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                             cooks_filter = FALSE)
+
+  # DESeq2 signals the flag by NA-ing the p-value while leaving lfc/se intact;
+  # without the propagation an outlier-driven fit could support an inference
+  flagged <- est_on$cooks_outlier
+  expect_gt(sum(flagged), 0)
+  expect_true(all(is.na(est_on$lfc[flagged])))
+  expect_true(all(is.na(est_on$se[flagged])))
+  # with the filter off, nothing is flagged and the estimates survive
+  expect_false(any(est_off$cooks_outlier))
+  expect_true(all(!is.na(est_off$lfc[flagged])))
+})
+
+test_that(".extract_lfc_se carries the t degrees of freedom when use_t was set", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+  sim <- .simulate_donor_seurat(n_donor_per_group = 6, n_cell_per_donor = 80,
+                                n_gene = c(de = 4, null = 15, noisy = 6), seed = 57)
+  skip_if(is.null(sim))
+
+  pseudobulk <- build_pseudobulk(seurat_obj = sim$seurat_obj,
+                                 case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL)
+  dds <- .fit_deseq2_mle(pseudobulk$mat, pseudobulk$metadata, use_t = TRUE)
+  est <- .extract_lfc_se(dds, coef_name = "diagnosis_case_vs_control",
+                         cooks_filter = FALSE)
+
+  # 12 pseudobulk samples minus the intercept and the case/control coefficient
+  expect_equal(unique(est$df), 10)
+})

@@ -17,7 +17,6 @@ test_that("tost_from_estimates matches the closed-form one-sided p-values", {
   expect_equal(res$pvalue_upper, stats::pnorm((bound - lfc) / se, lower.tail = FALSE))
   expect_equal(res$pvalue_lower, stats::pnorm((lfc + bound) / se, lower.tail = FALSE))
   expect_equal(res$pvalue_tost, pmax(res$pvalue_lower, res$pvalue_upper))
-  expect_equal(res$pvalue_diff, pmin(1, 2 * stats::pnorm(abs(lfc) / se, lower.tail = FALSE)))
   expect_true(all(res$pvalue_tost >= 0 & res$pvalue_tost <= 1))
 })
 
@@ -153,42 +152,112 @@ test_that("shrinking the fold change toward zero inflates the stable count", {
 })
 
 # ---------------------------------------------------------------------------
-# equivalence_partition
+# equivalence_call
 # ---------------------------------------------------------------------------
 
-test_that("equivalence_partition assigns the four classes correctly", {
-  # already-adjusted-scale p-values: with Bonferroni-free "none" adjustment the
-  # thresholding is exact
-  pvalue_diff <- c(0.001, 0.001, 0.900, 0.900, NA)
-  pvalue_tost <- c(0.900, 0.001, 0.001, 0.900, 0.001)
+test_that("equivalence_call thresholds the adjusted TOST p-value", {
+  # with "none" adjustment the thresholding is exact
+  pvalue_tost <- c(0.001, 0.049, 0.051, 0.900, NA)
 
-  res <- equivalence_partition(pvalue_diff, pvalue_tost,
-                               alpha = 0.05, p_adjust_method = "none")
+  res <- equivalence_call(pvalue_tost, alpha = 0.05, p_adjust_method = "none")
 
-  expect_equal(as.character(res$class),
-               c("differential", "trivial", "stable", "undetermined", NA))
-  expect_equal(levels(res$class),
-               c("differential", "trivial", "stable", "undetermined"))
-  expect_equal(res$padj_diff, pvalue_diff)
+  expect_equal(res$equivalent, c(TRUE, TRUE, FALSE, FALSE, NA))
+  expect_equal(res$padj_tost, pvalue_tost)
 })
 
-test_that("equivalence_partition applies BH separately to each test", {
+test_that("equivalence_call applies BH across genes", {
   set.seed(4)
-  pvalue_diff <- stats::runif(100)
   pvalue_tost <- stats::runif(100)
 
-  res <- equivalence_partition(pvalue_diff, pvalue_tost, alpha = 0.05)
+  res <- equivalence_call(pvalue_tost, alpha = 0.05)
 
-  expect_equal(res$padj_diff, stats::p.adjust(pvalue_diff, method = "BH"))
   expect_equal(res$padj_tost, stats::p.adjust(pvalue_tost, method = "BH"))
   # BH is never anti-conservative relative to the raw p-values
-  expect_true(all(res$padj_diff >= pvalue_diff))
+  expect_true(all(res$padj_tost >= pvalue_tost))
+  expect_equal(res$equivalent, res$padj_tost <= 0.05)
 })
 
-test_that("equivalence_partition carries gene names through", {
-  res <- equivalence_partition(c(0.5, 0.5), c(0.5, 0.5),
-                               gene_names = c("GeneA", "GeneB"))
+test_that("equivalence_call carries gene names through", {
+  res <- equivalence_call(c(0.5, 0.5), gene_names = c("GeneA", "GeneB"))
   expect_equal(rownames(res), c("GeneA", "GeneB"))
+})
+
+# ---------------------------------------------------------------------------
+# Multiplicity: lfc_threshold_min must live on the same scale as `equivalent`
+# ---------------------------------------------------------------------------
+
+test_that(".effective_alpha recovers the raw-p threshold the adjustment applied", {
+  set.seed(20)
+  pvalue <- c(stats::runif(40, 0, 0.01), stats::runif(60, 0, 1))
+  alpha <- 0.05
+
+  t_eff <- .effective_alpha(pvalue, alpha, "BH")
+
+  # a p.adjust method's rejection set is always {p <= t}; check that this t
+  # reproduces it exactly
+  padj <- stats::p.adjust(pvalue, method = "BH")
+  expect_equal(pvalue <= t_eff, padj <= alpha)
+  # and that it is BH's closed form, alpha * k / m
+  expect_equal(t_eff, alpha * sum(padj <= alpha) / length(pvalue))
+  # correcting for multiplicity can only tighten the threshold
+  expect_lt(t_eff, alpha)
+})
+
+test_that(".effective_alpha handles no rejections and no correction", {
+  # nothing rejected: fall back to what the most significant gene must beat
+  expect_equal(.effective_alpha(rep(0.9, 20), 0.05, "BH"), 0.05 / 20)
+  # "none" means the nominal level is already the applied threshold
+  expect_equal(.effective_alpha(rep(0.9, 20), 0.05, "none"), 0.05)
+  expect_equal(.effective_alpha(numeric(0), 0.05, "BH"), 0.05)
+})
+
+test_that("lfc_threshold_min agrees with `equivalent` after multiple testing", {
+  # Genes engineered so their TOST p-values straddle the gap between the
+  # nominal alpha and the stricter threshold BH actually applies.  Before the
+  # correction was carried into lfc_threshold_min, these reported a minimum
+  # rejectable bound inside lfc_threshold while being called not equivalent.
+  bound <- 0.5
+  alpha <- 0.05
+  estimate_df <- data.frame(lfc = c(seq(0.28, 0.36, by = 0.005), rep(0.45, 30)),
+                            se = 0.1)
+  rownames(estimate_df) <- paste0("g", seq_len(nrow(estimate_df)))
+
+  res <- deseq2_tost(estimate_df, lfc_threshold = bound, alpha = alpha)
+
+  # the disputed band is genuinely populated, so this is not a vacuous check
+  expect_gt(sum(res$pvalue_tost > attr(res, "alpha_effective") &
+                res$pvalue_tost <= alpha), 0)
+
+  expect_equal(res$lfc_threshold_min <= bound, res$equivalent)
+  expect_lt(attr(res, "alpha_effective"), alpha)
+})
+
+test_that("lfc_threshold_min agrees with `equivalent` under a t reference too", {
+  bound <- 0.5
+  alpha <- 0.05
+  estimate_df <- data.frame(lfc = c(seq(0.20, 0.34, by = 0.005), rep(0.45, 30)),
+                            se = 0.1,
+                            df = 10)
+  rownames(estimate_df) <- paste0("g", seq_len(nrow(estimate_df)))
+
+  res <- deseq2_tost(estimate_df, lfc_threshold = bound, alpha = alpha, use_t = TRUE)
+
+  expect_equal(res$lfc_threshold_min <= bound, res$equivalent)
+})
+
+test_that("with no correction, lfc_threshold_min is the unadjusted bound", {
+  bound <- 0.5
+  alpha <- 0.05
+  estimate_df <- data.frame(lfc = c(0.1, 0.3, 0.45), se = 0.1,
+                            row.names = c("a", "b", "c"))
+
+  res <- deseq2_tost(estimate_df, lfc_threshold = bound, alpha = alpha,
+                     p_adjust_method = "none")
+
+  expect_equal(attr(res, "alpha_effective"), alpha)
+  expect_equal(res$lfc_threshold_min,
+               abs(estimate_df$lfc) + stats::qnorm(1 - alpha) * estimate_df$se)
+  expect_equal(res$lfc_threshold_min <= bound, res$equivalent)
 })
 
 # ---------------------------------------------------------------------------
@@ -217,15 +286,15 @@ test_that("tost_from_estimates reproduces DESeq2's altHypothesis='lessAbs'", {
   expect_gt(sum(keep), 100)
   expect_equal(ours$pvalue_tost, res_deseq2_tost$pvalue[keep], tolerance = 1e-10)
   expect_equal(ours$stat_tost, res_deseq2_tost$stat[keep], tolerance = 1e-10)
-  # and the recomputed difference test matches DESeq2's Wald p-value
-  expect_equal(ours$pvalue_diff, res_mle$pvalue[keep], tolerance = 1e-10)
+  # no difference test is returned -- that is deseq2_helper()'s job
+  expect_false("pvalue_diff" %in% colnames(ours))
 })
 
 # ---------------------------------------------------------------------------
 # End-to-end on a simulated Seurat object
 # ---------------------------------------------------------------------------
 
-test_that("deseq2_tost_helper partitions simulated genes into the right classes", {
+test_that("deseq2_tost_helper calls the right simulated genes equivalent", {
   skip_if_not_installed("DESeq2")
   skip_if_not_installed("Seurat")
 
@@ -243,30 +312,31 @@ test_that("deseq2_tost_helper partitions simulated genes into the right classes"
 
   expect_true(is.data.frame(res))
   expect_equal(sort(rownames(res)), sort(names(sim$gene_class)))
-  expect_true(all(c("lfc", "se", "pvalue_tost", "padj_tost", "class") %in% colnames(res)))
+  expect_true(all(c("lfc", "se", "pvalue_tost", "padj_tost", "equivalent") %in% colnames(res)))
   expect_equal(attr(res, "lfc_threshold"), 0.5)
 
+  # strictly an equivalence test: no differential-expression p-values
+  expect_false(any(c("pvalue_diff", "padj_diff", "class",
+                     "pvalue_deseq2", "padj_deseq2") %in% colnames(res)))
+
   gene_class <- sim$gene_class[rownames(res)]
-  tab <- table(gene_class, res$class)
+  frac_equivalent <- tapply(res$equivalent, gene_class, mean)
 
-  # truly differential genes are found, and are never called stable
-  expect_gt(tab["de", "differential"] / sum(gene_class == "de"), 0.9)
-  expect_equal(unname(tab["de", "stable"]), 0)
+  # well-expressed null genes are positively established as equivalent
+  expect_gt(frac_equivalent[["null"]], 0.7)
+  # genes with a real 4-fold effect are far outside the bound
+  expect_equal(frac_equivalent[["de"]], 0)
+  # barely-expressed genes are too imprecise to establish equivalence -- they
+  # are NOT equivalent, but for a completely different reason than the DE genes
+  expect_equal(frac_equivalent[["noisy"]], 0)
 
-  # well-expressed null genes are positively established as stable
-  expect_gt(tab["null", "stable"] / sum(gene_class == "null"), 0.7)
-
-  # barely-expressed null genes are undetermined, not stable: this is the
-  # distinction the whole partition exists to make
-  expect_gt(tab["noisy", "undetermined"] / sum(gene_class == "noisy"), 0.7)
-
-  # the estimated fold changes point the right way
-  expect_gt(stats::median(abs(res$lfc[gene_class == "de"])), 1.5)
-  expect_lt(stats::median(abs(res$lfc[gene_class == "null"])), 0.3)
-
-  # noisy genes have a much larger minimum rejectable bound than clean ones
+  # ...and that reason is visible in the minimum rejectable bound: noisy genes
+  # fail because the bound they could reject is huge, DE genes because |lfc| is
   expect_gt(stats::median(res$lfc_threshold_min[gene_class == "noisy"], na.rm = TRUE),
             stats::median(res$lfc_threshold_min[gene_class == "null"], na.rm = TRUE))
+  expect_lt(stats::median(abs(res$lfc[gene_class == "noisy"]), na.rm = TRUE), 1)
+  expect_gt(stats::median(abs(res$lfc[gene_class == "de"])), 1.5)
+  expect_lt(stats::median(abs(res$lfc[gene_class == "null"])), 0.3)
 })
 
 test_that("deseq2_tost_helper accepts a donor-constant numerical covariate", {
@@ -315,8 +385,8 @@ test_that("deseq2_tost_helper propagates the t reference distribution", {
                stats::pt((0.5 - res$lfc) / res$se, df = res$df, lower.tail = FALSE))
 
   gene_class <- sim$gene_class[rownames(res)]
-  expect_true(all(res$class[gene_class == "de"] == "differential"))
-  expect_true(all(res$class[gene_class == "noisy"] == "undetermined"))
+  expect_true(all(res$equivalent[gene_class == "null"]))
+  expect_false(any(res$equivalent[gene_class %in% c("de", "noisy")]))
 })
 
 test_that("deseq2_tost_helper requires a positive, pre-specified bound", {
@@ -338,4 +408,115 @@ test_that("deseq2_tost_helper requires a positive, pre-specified bound", {
                                   numerical_vars = NULL,
                                   seurat_obj = sim$seurat_obj,
                                   lfc_threshold = 0))
+})
+
+# ---------------------------------------------------------------------------
+# The four-way partition: deseq2_helper() crossed with deseq2_tost()
+# ---------------------------------------------------------------------------
+#
+# Neither function produces the partition on its own -- deseq2_tost_helper()
+# tests only equivalence, deseq2_helper() only difference.  Crossing them is
+# what separates "few DEGs because the genes are provably stable" from "few
+# DEGs because the cohort was underpowered", which is the point of the whole
+# exercise (see the wiki's [[analysis-tost-for-deg-equivalence]]).
+
+test_that("deseq2_tost can reuse deseq2_helper's estimates without a second fit", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+
+  sim <- .simulate_donor_seurat()
+  skip_if(is.null(sim))
+
+  res_de <- deseq2_helper(case_control_levels = c("control", "case"),
+                          case_control_var = "diagnosis",
+                          categorical_vars = NULL,
+                          id_var = "donor",
+                          numerical_vars = NULL,
+                          seurat_obj = sim$seurat_obj)
+
+  # deseq2_helper() already returns the unshrunken log2FC and its standard
+  # error, which is everything the equivalence test needs
+  estimate_df <- data.frame(base_mean = res_de$baseMean,
+                            lfc = res_de$log2FoldChange,
+                            se = res_de$lfcSE,
+                            row.names = rownames(res_de))
+  res_tost <- deseq2_tost(estimate_df, lfc_threshold = 0.5, alpha = 0.05)
+
+  # This route is exact, not an approximation: independent filtering and the
+  # Cook's cutoff only ever touch p-values, never log2FoldChange or lfcSE, so
+  # the estimates are bit-identical to the ones deseq2_tost_helper() extracts.
+  res_full <- deseq2_tost_helper(case_control_levels = c("control", "case"),
+                                 case_control_var = "diagnosis",
+                                 categorical_vars = NULL,
+                                 id_var = "donor",
+                                 numerical_vars = NULL,
+                                 seurat_obj = sim$seurat_obj,
+                                 lfc_threshold = 0.5,
+                                 alpha = 0.05)
+  res_full <- res_full[rownames(res_tost), ]
+
+  expect_equal(res_tost$lfc, res_full$lfc)
+  expect_equal(res_tost$se, res_full$se)
+  expect_equal(res_tost$pvalue_tost, res_full$pvalue_tost)
+  expect_equal(res_tost$equivalent, res_full$equivalent)
+})
+
+test_that("crossing deseq2_helper with deseq2_tost recovers the four-way partition", {
+  skip_if_not_installed("DESeq2")
+  skip_if_not_installed("Seurat")
+
+  alpha <- 0.05
+  sim <- .simulate_donor_seurat()
+  skip_if(is.null(sim))
+
+  res_de <- deseq2_helper(case_control_levels = c("control", "case"),
+                          case_control_var = "diagnosis",
+                          categorical_vars = NULL,
+                          id_var = "donor",
+                          numerical_vars = NULL,
+                          seurat_obj = sim$seurat_obj)
+  res_tost <- deseq2_tost(data.frame(lfc = res_de$log2FoldChange,
+                                     se = res_de$lfcSE,
+                                     row.names = rownames(res_de)),
+                          lfc_threshold = 0.5,
+                          alpha = alpha)
+
+  # the two tables must be joinable gene for gene
+  expect_equal(rownames(res_de), rownames(res_tost))
+
+  # DESeq2's independent filtering leaves padj = NA for genes it declined to
+  # test.  Treat those as "not differential": a gene was filtered precisely
+  # because it had no prospect of significance, so the equivalence test is what
+  # decides whether it is stable or merely undetermined.  Dropping them instead
+  # would discard exactly the low-information genes the partition exists to
+  # classify.
+  is_diff <- !is.na(res_de$padj) & res_de$padj <= alpha
+  is_equiv <- res_tost$equivalent
+  expect_gt(sum(is.na(res_de$padj)), 0)
+
+  partition <- factor(ifelse(is_diff & !is_equiv, "differential",
+                      ifelse(is_diff & is_equiv, "significant but negligible",
+                      ifelse(!is_diff & is_equiv, "stable", "undetermined"))),
+                      levels = c("differential", "significant but negligible",
+                                 "stable", "undetermined"))
+
+  gene_class <- sim$gene_class[rownames(res_tost)]
+  tab <- table(gene_class, partition)
+
+  # a real 4-fold effect: significant, and not equivalent
+  expect_gt(tab["de", "differential"] / sum(gene_class == "de"), 0.9)
+  expect_equal(unname(tab["de", "stable"]), 0)
+
+  # well expressed with no true effect: positively established as stable
+  expect_gt(tab["null", "stable"] / sum(gene_class == "null"), 0.7)
+  expect_equal(unname(tab["null", "undetermined"]), 0)
+
+  # barely expressed with no true effect: neither test can conclude anything.
+  # These are the genes that a DEG count alone would misreport as evidence of
+  # stability, and they are the only class that is genuinely underpowered.
+  expect_equal(unname(tab["noisy", "undetermined"]), sum(gene_class == "noisy"))
+
+  # every gene lands in exactly one class
+  expect_equal(sum(tab), length(gene_class))
+  expect_false(any(is.na(partition)))
 })

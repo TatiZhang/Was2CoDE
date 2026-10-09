@@ -1,4 +1,5 @@
-# Donor-level pseudobulk construction, shared by the DE-method wrappers.
+# Donor-level pseudobulk construction and DESeq2 fitting, shared by the
+# DE-method wrappers.
 #
 # Every wrapper in this package that runs a bulk method on single-cell data
 # needs the same four steps: aggregate nuclei to one count vector per donor,
@@ -6,6 +7,15 @@
 # design variables into the factor/scale form the model expects, and drop
 # design variables that do not vary.  `build_pseudobulk()` is that pipeline;
 # `deseq2_helper()` and `deseq2_tost_helper()` both call it.
+#
+# The second half of the file is the DESeq2 fit-and-extract pair used by
+# `deseq2_tost_helper()`: `.fit_deseq2_mle()` and `.extract_lfc_se()`.  These
+# are kept apart from the TOST arithmetic so that file stays about equivalence
+# testing, and so any future wrapper needing unshrunken (log2FC, SE) per gene
+# can reuse them.  Note `deseq2_helper()` deliberately does NOT use them: it
+# calls `DESeq2::DESeq(dds)` with the package defaults, and routing it through
+# `.fit_deseq2_mle()` would change its console output and couple it to
+# TOST-specific choices.
 
 #' Validate the donor / covariate arguments shared by the DE-method wrappers
 #'
@@ -216,3 +226,92 @@ build_pseudobulk <- function(seurat_obj,
        metadata = metadata_pseudobulk,
        pseudo_seurat = pseudo_seurat)
 }
+
+# ---------------------------------------------------------------------------
+# DESeq2 fitting on the pseudobulk matrix
+# ---------------------------------------------------------------------------
+
+#' Fit the DESeq2 negative-binomial GLM with unshrunken coefficients
+#'
+#' `betaPrior = FALSE` is not optional here: a zero-centered prior on the log2
+#' fold change shrinks estimates toward zero, which inflates the count of genes
+#' declared "stably expressed".  DESeq2 itself refuses `altHypothesis =
+#' "lessAbs"` when `betaPrior = TRUE` for the same reason.
+#'
+#' The design is `~ <covariates> + <case/control>`, built from the column names
+#' of `metadata_pseudobulk` in order.  `.prepare_pseudobulk_metadata()` puts the
+#' case/control variable last, which is what makes its coefficient reachable as
+#' `"<var>_<case>_vs_<control>"`.
+#'
+#' @param mat_pseudobulk Integer count matrix, genes x pseudobulk samples.
+#' @param metadata_pseudobulk `data.frame` of design variables.
+#' @param use_t Passed to [DESeq2::DESeq()]; use a t reference distribution.
+#' @param quiet Passed to [DESeq2::DESeq()]; suppress its progress messages.
+#'
+#' @return A fitted `DESeqDataSet`.
+#' @noRd
+.fit_deseq2_mle <- function(mat_pseudobulk,
+                            metadata_pseudobulk,
+                            use_t = FALSE,
+                            quiet = FALSE) {
+  design_formula <- stats::as.formula(paste0("~ ", paste0(colnames(metadata_pseudobulk), collapse = "+")))
+  dds <- DESeq2::DESeqDataSetFromMatrix(countData = mat_pseudobulk,
+                                        colData = metadata_pseudobulk,
+                                        design = design_formula)
+  DESeq2::DESeq(dds, betaPrior = FALSE, useT = use_t, quiet = quiet)
+}
+
+#' Pull the unshrunken log2 fold change and its standard error out of a fit
+#'
+#' Returns the effect and its uncertainty only -- no p-values.  Whatever test a
+#' caller wants (a Wald difference test, a TOST equivalence test, a
+#' meta-analytic pool) is built from `(lfc, se)` downstream; for DESeq2's own
+#' differential-expression p-values, run [deseq2_helper()].
+#'
+#' @param dds A fitted `DESeqDataSet`.
+#' @param coef_name Name of the coefficient, as in `DESeq2::resultsNames()`.
+#' @param cooks_filter Logical; if `TRUE`, genes flagged by DESeq2's Cook's
+#'   distance cutoff have their `lfc` and `se` set to `NA`.  An outlier-driven
+#'   fit should not be allowed to support an inference either way.
+#' @param base_mean_min Genes with `baseMean` below this are set to `NA`.
+#'
+#' @return A `data.frame` with `base_mean`, `lfc`, `se`, `df` (or `NA` if a
+#'   normal reference is in use), and the logical flag `cooks_outlier`.
+#' @noRd
+.extract_lfc_se <- function(dds,
+                            coef_name,
+                            cooks_filter = TRUE,
+                            base_mean_min = 0) {
+  # independentFiltering is switched off because it only ever affects padj,
+  # which is not returned here -- and because DESeq2's filter is tuned to
+  # maximize rejections of the *difference* null, so it has no business
+  # deciding which genes are eligible for some other test.  Filtering is
+  # instead an explicit, pre-specifiable baseMean threshold.
+  res <- DESeq2::results(dds,
+                         name = coef_name,
+                         independentFiltering = FALSE,
+                         cooksCutoff = cooks_filter)
+
+  lfc <- res$log2FoldChange
+  se <- res$lfcSE
+
+  # DESeq2 signals a Cook's-flagged gene by NA-ing its p-value while leaving
+  # lfc/se intact, so the flag has to be read off the p-value and propagated
+  # by hand.
+  cooks_outlier <- is.na(res$pvalue) & !is.na(lfc) & !is.na(se)
+  drop_idx <- cooks_outlier | is.na(lfc) | is.na(se) | res$baseMean < base_mean_min
+  lfc[drop_idx] <- NA
+  se[drop_idx] <- NA
+
+  df_vec <- SummarizedExperiment::mcols(dds)$tDegreesFreedom
+  if (is.null(df_vec)) df_vec <- NA_real_
+
+  data.frame(base_mean = res$baseMean,
+             lfc = lfc,
+             se = se,
+             df = df_vec,
+             cooks_outlier = cooks_outlier,
+             row.names = rownames(res),
+             stringsAsFactors = FALSE)
+}
+

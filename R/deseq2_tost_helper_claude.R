@@ -21,10 +21,15 @@
 #   * The equivalence bound (SESOI) must be pre-specified, so `lfc_threshold`
 #     has no default.
 #
+# This file is about equivalence and nothing else: it returns no
+# differential-expression p-values.  Run `deseq2_helper()` for those and join
+# the two tables by gene name if the four-way differential / stable /
+# "significant but negligible" / undetermined partition is wanted.
+#
 # The arithmetic here reproduces DESeq2's own `altHypothesis = "lessAbs"`
-# branch of `DESeq2::results()`; it is factored out so that (a) it can be unit
-# tested without Bioconductor, and (b) the difference test and the equivalence
-# test are guaranteed to come from the same (lfc, se) pair.
+# branch of `DESeq2::results()`; it is factored out so it can be unit tested
+# without Bioconductor and reused for any method that yields a per-gene
+# (estimate, standard error) pair.
 
 # ---------------------------------------------------------------------------
 # Core TOST arithmetic (no DESeq2 / Seurat dependency)
@@ -80,9 +85,8 @@
 #' stably expressed") against `H1: |beta| < lfc_threshold` ("the gene is stably
 #' expressed"), by rejecting both one-sided nulls at the full `alpha`.
 #'
-#' Also returns the ordinary two-sided Wald p-value for the usual difference
-#' test, computed from the same `(lfc, se)` pair so that the two tests are
-#' internally consistent, and the per-gene minimum rejectable bound.
+#' Also returns the per-gene minimum rejectable bound.  No difference test is
+#' computed here -- see [deseq2_helper()] for that.
 #'
 #' @param lfc Numeric vector of *unshrunken* log2 fold-change estimates.
 #' @param se Numeric vector of standard errors, same length as `lfc`.
@@ -90,7 +94,9 @@
 #'   log2 fold-change scale.  Must be pre-specified, never read off the data.
 #' @param alpha Level of each one-sided test.  TOST is an intersection-union
 #'   test, so this is the full alpha, not alpha / 2.  Used only for
-#'   `lfc_threshold_min`; the returned p-values do not depend on it.
+#'   `lfc_threshold_min`; the returned p-values do not depend on it.  This is a
+#'   single-test function and knows nothing about the gene set, so the level is
+#'   taken at face value -- see the note on `lfc_threshold_min` below.
 #' @param df `NULL` (default) for a standard normal reference, matching
 #'   DESeq2's Wald test, or degrees of freedom for a t reference.
 #' @param gene_names Optional character vector used as row names.
@@ -103,11 +109,14 @@
 #'     \item{`pvalue_lower`}{one-sided p for `H0: beta <= -lfc_threshold`}
 #'     \item{`pvalue_upper`}{one-sided p for `H0: beta >= +lfc_threshold`}
 #'     \item{`pvalue_tost`}{`max(pvalue_lower, pvalue_upper)`}
-#'     \item{`pvalue_diff`}{ordinary two-sided Wald p for `H0: beta = 0`}
 #'     \item{`lfc_threshold_min`}{`|lfc| + q_alpha * se`, the smallest
 #'       equivalence bound this gene could have rejected at `alpha`.  This is
 #'       the resource-based SESOI: reporting its distribution states what
-#'       magnitude of effect the cohort can actually rule out.}
+#'       magnitude of effect the cohort can actually rule out.  **Computed on
+#'       the unadjusted, per-test scale**, because this function sees one gene
+#'       at a time and multiplicity is not defined without the gene set.
+#'       [deseq2_tost()] recomputes it on the multiplicity-corrected scale so
+#'       that it agrees with the `equivalent` call.}
 #'   }
 #' @noRd
 tost_from_estimates <- function(lfc,
@@ -131,9 +140,6 @@ tost_from_estimates <- function(lfc,
   pvalue_tost <- pmax(pvalue_lower, pvalue_upper)
   stat_tost <- pmin(pmax(z_upper, 0), pmax(z_lower, 0))
 
-  # Ordinary two-sided Wald test, from the same estimate and standard error.
-  pvalue_diff <- pmin(1, 2 * .tost_upper_tail(abs(lfc) / se, df = df))
-
   # Smallest bound this gene could reject: TOST rejects at level alpha iff
   # both z's exceed q_alpha, i.e. iff lfc_threshold > |lfc| + q_alpha * se.
   q_alpha <- if (is.null(df)) {
@@ -149,7 +155,6 @@ tost_from_estimates <- function(lfc,
                     pvalue_lower = pvalue_lower,
                     pvalue_upper = pvalue_upper,
                     pvalue_tost = pvalue_tost,
-                    pvalue_diff = pvalue_diff,
                     lfc_threshold_min = lfc_threshold_min,
                     stringsAsFactors = FALSE)
   if (!is.null(gene_names)) {
@@ -160,60 +165,79 @@ tost_from_estimates <- function(lfc,
   res
 }
 
-#' Partition genes into differential / stable / trivial / undetermined
+#' The raw-p-value threshold that a multiple-testing adjustment actually applied
 #'
-#' Crossing the ordinary difference test with the equivalence test gives four
-#' classes rather than two.  The point of the partition is that "few DEGs" is
-#' currently reported identically whether the non-significant genes are
-#' *provably stable* or merely *undetermined*; only the latter is evidence of
-#' being underpowered.
+#' Every method in [stats::p.adjust()] is monotone in the raw p-value, so its
+#' rejection set is always `{p <= t}` for some data-dependent `t`.  Recovering
+#' that `t` is what lets a per-gene quantity derived from the raw scale (here,
+#' `lfc_threshold_min`) be put on the same footing as the adjusted call.  For
+#' Benjamini-Hochberg, `t` is the largest rejected p-value, equal to
+#' `alpha * k / m` with `k` rejections among `m` tests.
 #'
-#' Multiplicity: Benjamini-Hochberg is applied separately to the difference
-#' p-values and to the TOST p-values.  There is no correction *within* a gene's
-#' TOST (intersection-union test).  Note the "stable" count tends to be an
-#' under-estimate, since TOST is conservative away from the bound.
+#' The value is exact for the gene set as it stands.  It is *not* a fixed
+#' constant of the design: change `lfc_threshold` and every p-value moves, so
+#' `k` -- and therefore `t` -- moves with it.
 #'
-#' @param pvalue_diff Numeric vector of two-sided difference p-values.
-#' @param pvalue_tost Numeric vector of TOST p-values, same length.
-#' @param alpha Level at which both adjusted p-values are thresholded.
+#' @param pvalue Numeric vector of raw p-values (`NA`s ignored).
+#' @param alpha The nominal level applied to the adjusted p-values.
+#' @param p_adjust_method Passed to [stats::p.adjust()].
+#'
+#' @return A single numeric threshold on the raw p-value scale.
+#' @noRd
+.effective_alpha <- function(pvalue, alpha, p_adjust_method = "BH") {
+  p <- pvalue[!is.na(pvalue)]
+  m <- length(p)
+  # no correction, or nothing to correct over: the nominal level is applied
+  if (m == 0 || identical(p_adjust_method, "none")) return(alpha)
+
+  padj <- stats::p.adjust(p, method = p_adjust_method)
+  rejected <- !is.na(padj) & padj <= alpha
+  k <- sum(rejected)
+
+  # Nothing rejected: no observed p-value pins the threshold, so report the
+  # level the single most significant gene would have had to beat.
+  if (k == 0) return(alpha / m)
+
+  # Benjamini-Hochberg rejects exactly {p <= alpha * k / m}: every rejected
+  # p is at most that, and p_(k+1) > (k+1) * alpha / m by construction.
+  if (p_adjust_method %in% c("BH", "fdr")) return(alpha * k / m)
+
+  # Any other monotone correction: fall back to the attained level, the largest
+  # p that survived.  Still reproduces the rejection set exactly, but it is a
+  # realized rather than nominal threshold.
+  max(p[rejected])
+}
+
+#' Adjust TOST p-values across genes and call the equivalent ones
+#'
+#' Multiplicity: Benjamini-Hochberg across genes.  There is no correction
+#' *within* a gene's TOST -- it is an intersection-union test, so each of the
+#' two one-sided tests already runs at the full alpha.  Note the count of
+#' equivalent genes tends to be an under-estimate, since TOST is conservative
+#' away from the bound.
+#'
+#' @param pvalue_tost Numeric vector of TOST p-values.
+#' @param alpha Level at which the adjusted p-value is thresholded.
 #' @param p_adjust_method Passed to [stats::p.adjust()]; default `"BH"`.
 #' @param gene_names Optional character vector used as row names.
 #'
-#' @return A `data.frame` with `padj_diff`, `padj_tost` and a factor `class`
-#'   with levels `"differential"`, `"trivial"`, `"stable"`, `"undetermined"`.
-#'   Genes with an `NA` in either adjusted p-value get `class = NA`.
+#' @return A `data.frame` with `padj_tost` and the logical `equivalent`
+#'   (`NA` where the p-value is `NA`).
 #' @noRd
-equivalence_partition <- function(pvalue_diff,
-                                  pvalue_tost,
-                                  alpha = 0.05,
-                                  p_adjust_method = "BH",
-                                  gene_names = NULL) {
-  stopifnot(is.numeric(pvalue_diff),
-            is.numeric(pvalue_tost),
-            length(pvalue_diff) == length(pvalue_tost))
+equivalence_call <- function(pvalue_tost,
+                             alpha = 0.05,
+                             p_adjust_method = "BH",
+                             gene_names = NULL) {
+  stopifnot(is.numeric(pvalue_tost))
   stopifnot(length(alpha) == 1, is.numeric(alpha), alpha > 0, alpha < 1)
 
-  padj_diff <- stats::p.adjust(pvalue_diff, method = p_adjust_method)
   padj_tost <- stats::p.adjust(pvalue_tost, method = p_adjust_method)
 
-  is_diff <- padj_diff <= alpha
-  is_equiv <- padj_tost <= alpha
-
-  class_vec <- rep(NA_character_, length(pvalue_diff))
-  usable <- !is.na(is_diff) & !is.na(is_equiv)
-  class_vec[usable & is_diff & !is_equiv] <- "differential"
-  class_vec[usable & is_diff & is_equiv] <- "trivial"
-  class_vec[usable & !is_diff & is_equiv] <- "stable"
-  class_vec[usable & !is_diff & !is_equiv] <- "undetermined"
-
-  res <- data.frame(padj_diff = padj_diff,
-                    padj_tost = padj_tost,
-                    class = factor(class_vec,
-                                   levels = c("differential", "trivial",
-                                              "stable", "undetermined")),
+  res <- data.frame(padj_tost = padj_tost,
+                    equivalent = padj_tost <= alpha,
                     stringsAsFactors = FALSE)
   if (!is.null(gene_names)) {
-    stopifnot(length(gene_names) == length(pvalue_diff))
+    stopifnot(length(gene_names) == length(pvalue_tost))
     rownames(res) <- gene_names
   }
 
@@ -221,92 +245,23 @@ equivalence_partition <- function(pvalue_diff,
 }
 
 # ---------------------------------------------------------------------------
-# DESeq2 fitting
-# ---------------------------------------------------------------------------
-
-#' Fit the DESeq2 negative-binomial GLM with unshrunken coefficients
-#'
-#' `betaPrior = FALSE` is not optional here: a zero-centered prior on the log2
-#' fold change shrinks estimates toward zero, which inflates the count of genes
-#' declared "stably expressed".  DESeq2 itself refuses `altHypothesis =
-#' "lessAbs"` when `betaPrior = TRUE` for the same reason.
-#'
-#' @param mat_pseudobulk Integer count matrix, genes x pseudobulk samples.
-#' @param metadata_pseudobulk `data.frame` of design variables.
-#' @param use_t Passed to [DESeq2::DESeq()]; use a t reference distribution.
-#'
-#' @return A fitted `DESeqDataSet`.
-#' @noRd
-.fit_deseq2_mle <- function(mat_pseudobulk,
-                            metadata_pseudobulk,
-                            use_t = FALSE) {
-  design_formula <- stats::as.formula(paste0("~ ", paste0(colnames(metadata_pseudobulk), collapse = "+")))
-  dds <- DESeq2::DESeqDataSetFromMatrix(countData = mat_pseudobulk,
-                                        colData = metadata_pseudobulk,
-                                        design = design_formula)
-  DESeq2::DESeq(dds, betaPrior = FALSE, useT = use_t, quiet = TRUE)
-}
-
-#' Pull the unshrunken log2 fold change and its standard error out of a fit
-#'
-#' @param dds A fitted `DESeqDataSet`.
-#' @param coef_name Name of the coefficient, as in `DESeq2::resultsNames()`.
-#' @param cooks_filter Logical; if `TRUE`, genes flagged by DESeq2's Cook's
-#'   distance cutoff are set to `NA`.  An outlier-driven fit should not be
-#'   allowed to support an equivalence claim.
-#' @param base_mean_min Genes with `baseMean` below this are set to `NA`.
-#'
-#' @return A `data.frame` with `base_mean`, `lfc`, `se`, `pvalue_deseq2`,
-#'   `padj_deseq2` and `df` (or `NA` if a normal reference is in use).
-#' @noRd
-.extract_lfc_se <- function(dds,
-                            coef_name,
-                            cooks_filter = TRUE,
-                            base_mean_min = 0) {
-  # independentFiltering is switched off: DESeq2's filter is tuned to maximize
-  # rejections of the *difference* null, and reusing it would silently change
-  # which genes are eligible to be called stable.  Filtering is instead an
-  # explicit, pre-specifiable baseMean threshold.
-  res <- DESeq2::results(dds,
-                         name = coef_name,
-                         independentFiltering = FALSE,
-                         cooksCutoff = cooks_filter)
-
-  lfc <- res$log2FoldChange
-  se <- res$lfcSE
-
-  # Cook's-flagged genes have their p-value NA'd by DESeq2 but keep an lfc/se;
-  # propagate that flag so they cannot be declared stable.
-  drop_idx <- is.na(res$pvalue) | is.na(lfc) | is.na(se) | res$baseMean < base_mean_min
-  lfc[drop_idx] <- NA
-  se[drop_idx] <- NA
-
-  df_vec <- SummarizedExperiment::mcols(dds)$tDegreesFreedom
-  if (is.null(df_vec)) df_vec <- NA_real_
-
-  data.frame(base_mean = res$baseMean,
-             lfc = lfc,
-             se = se,
-             pvalue_deseq2 = res$pvalue,
-             padj_deseq2 = res$padj,
-             df = df_vec,
-             row.names = rownames(res),
-             stringsAsFactors = FALSE)
-}
-
-# ---------------------------------------------------------------------------
 # Top-level wrapper
 # ---------------------------------------------------------------------------
 
-#' Donor-level DESeq2 differential expression with a TOST equivalence test
+#' Donor-level DESeq2 TOST equivalence test
 #'
 #' Aggregates a `Seurat` object to donor-level pseudobulk, fits the DESeq2
-#' negative-binomial GLM with *unshrunken* coefficients, then runs both the
-#' ordinary two-sided difference test and a TOST equivalence test against a
-#' pre-specified log2 fold-change bound.  Genes are partitioned into
-#' `differential` / `trivial` / `stable` / `undetermined`.
+#' negative-binomial GLM with *unshrunken* coefficients, and tests each gene
+#' for equivalence against a pre-specified log2 fold-change bound.
 #'
-#' The signature matches `deseq2_helper()` with three additional arguments;
+#' This function tests **only** equivalence -- it returns no
+#' differential-expression p-values.  For those, run [deseq2_helper()] on the
+#' same object and join the two tables by gene name; crossing the two calls
+#' recovers the four-way differential / stable / "significant but negligible"
+#' / undetermined partition, but that is the caller's business, not this
+#' function's.
+#'
+#' The signature matches `deseq2_helper()` with extra arguments;
 #' `lfc_threshold` has no default because an equivalence bound read off the
 #' data voids the type-I error guarantee.
 #'
@@ -321,8 +276,8 @@ equivalence_partition <- function(pvalue_diff,
 #' @param seurat_obj A `Seurat` object.
 #' @param lfc_threshold Positive scalar: the SESOI on the log2 fold-change
 #'   scale.  Pre-specify it.
-#' @param alpha Level for both tests.  Each of the two one-sided tests runs at
-#'   the full `alpha` (intersection-union test).
+#' @param alpha Level of the test.  Each of the two one-sided tests runs at the
+#'   full `alpha` (intersection-union test).
 #' @param use_t Use a t rather than normal reference distribution.  Reasonable
 #'   with few donors; `FALSE` matches DESeq2's default Wald test.
 #' @param cooks_filter Set genes flagged by Cook's distance to `NA`.
@@ -330,10 +285,13 @@ equivalence_partition <- function(pvalue_diff,
 #' @param p_adjust_method Passed to [stats::p.adjust()].
 #'
 #' @return A `data.frame` with one row per gene, holding `base_mean`, the
-#'   unshrunken `lfc` and `se`, DESeq2's own p-values, the TOST quantities from
-#'   [tost_from_estimates()], the adjusted p-values and the `class` factor from
-#'   [equivalence_partition()].  The `lfc_threshold` used and the coefficient
-#'   name are attached as attributes.
+#'   unshrunken `lfc` and `se`, the TOST quantities from
+#'   [tost_from_estimates()], and `padj_tost` / `equivalent` from
+#'   [equivalence_call()].  `lfc_threshold_min <= lfc_threshold` agrees with
+#'   `equivalent` exactly, because the former is put on the
+#'   multiplicity-corrected scale.  The `lfc_threshold` and `alpha` used, the
+#'   raw-scale threshold the correction actually applied (`alpha_effective`),
+#'   and the coefficient name are attached as attributes.
 #' @noRd
 deseq2_tost_helper <- function(case_control_levels, # Control and then Case
                                case_control_var,
@@ -354,7 +312,7 @@ deseq2_tost_helper <- function(case_control_levels, # Control and then Case
             is.finite(lfc_threshold),
             lfc_threshold > 0)
 
-  # aggregate to one count vector per donor; see pseudobulk_claude.R
+  # aggregate to one count vector per donor; see pseudobulk.R
   pseudobulk <- build_pseudobulk(seurat_obj = seurat_obj,
                                  case_control_levels = case_control_levels,
                                  case_control_var = case_control_var,
@@ -364,7 +322,8 @@ deseq2_tost_helper <- function(case_control_levels, # Control and then Case
 
   dds <- .fit_deseq2_mle(mat_pseudobulk = pseudobulk$mat,
                          metadata_pseudobulk = pseudobulk$metadata,
-                         use_t = use_t)
+                         use_t = use_t,
+                         quiet = TRUE)
 
   coef_name <- paste0(case_control_var, "_", case_control_levels[2], "_vs_", case_control_levels[1])
   estimate_df <- .extract_lfc_se(dds = dds,
@@ -380,14 +339,14 @@ deseq2_tost_helper <- function(case_control_levels, # Control and then Case
               coef_name = coef_name)
 }
 
-#' Run the TOST partition on an already-extracted table of estimates
+#' Run the TOST on an already-extracted table of estimates
 #'
-#' Separated from [deseq2_tost_helper()] so the same partition can be applied
-#' to any method that yields a per-gene effect and standard error (dreamlet,
-#' NEBULA, eSVD-DE), and so it can be tested without fitting a GLM.
+#' Separated from [deseq2_tost_helper()] so the same test can be applied to any
+#' method that yields a per-gene effect and standard error (dreamlet, NEBULA,
+#' eSVD-DE), and so it can be tested without fitting a GLM.
 #'
 #' @param estimate_df `data.frame` with at least `lfc` and `se` columns, and
-#'   optionally `base_mean`, `pvalue_deseq2`, `padj_deseq2`, `df`.
+#'   optionally `base_mean`, `df`, `cooks_outlier`.
 #' @param lfc_threshold,alpha,p_adjust_method See [deseq2_tost_helper()].
 #' @param use_t Whether `estimate_df$df` should be used as the reference
 #'   distribution's degrees of freedom.
@@ -413,7 +372,7 @@ deseq2_tost <- function(estimate_df,
   # test on the usable genes and re-expand.
   usable <- !is.na(estimate_df$lfc) & !is.na(estimate_df$se)
   tost_cols <- c("stat_tost", "pvalue_lower", "pvalue_upper", "pvalue_tost",
-                 "pvalue_diff", "lfc_threshold_min")
+                 "lfc_threshold_min")
   tost_df <- as.data.frame(matrix(NA_real_,
                                   nrow = nrow(estimate_df),
                                   ncol = length(tost_cols),
@@ -427,19 +386,33 @@ deseq2_tost <- function(estimate_df,
     tost_df[usable, ] <- tost_sub[, tost_cols]
   }
 
-  partition_df <- equivalence_partition(pvalue_diff = tost_df$pvalue_diff,
-                                        pvalue_tost = tost_df$pvalue_tost,
-                                        alpha = alpha,
-                                        p_adjust_method = p_adjust_method)
+  call_df <- equivalence_call(pvalue_tost = tost_df$pvalue_tost,
+                              alpha = alpha,
+                              p_adjust_method = p_adjust_method)
+
+  # `lfc_threshold_min` arrives from tost_from_estimates() on the unadjusted
+  # per-test scale, which would contradict `equivalent`: a gene whose raw
+  # p-value clears alpha but whose adjusted p-value does not would be reported
+  # as having a minimum rejectable bound inside `lfc_threshold` while being
+  # called not equivalent.  Put it back on the scale the adjustment actually
+  # applied, so the two agree exactly.
+  alpha_effective <- .effective_alpha(tost_df$pvalue_tost, alpha, p_adjust_method)
+  q_effective <- if (is.null(df_vec)) {
+    stats::qnorm(1 - alpha_effective)
+  } else {
+    stats::qt(1 - alpha_effective, df = df_vec)
+  }
+  tost_df$lfc_threshold_min <- abs(estimate_df$lfc) + q_effective * estimate_df$se
 
   res <- cbind(estimate_df[, setdiff(colnames(estimate_df), c("lfc", "se")), drop = FALSE],
                estimate_df[, c("lfc", "se"), drop = FALSE],
                tost_df,
-               partition_df)
+               call_df)
   rownames(res) <- rownames(estimate_df)
 
   attr(res, "lfc_threshold") <- lfc_threshold
   attr(res, "alpha") <- alpha
+  attr(res, "alpha_effective") <- alpha_effective
   attr(res, "coef_name") <- coef_name
 
   res

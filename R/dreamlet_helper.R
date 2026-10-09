@@ -10,6 +10,24 @@ dreamlet_helper <- function(case_control_levels, # Control and then Case
                             min_prop = 0){
   if (!requireNamespace("dreamlet", quietly = TRUE))
     stop("Package 'dreamlet' is required. Install it with BiocManager::install('dreamlet').")
+  stopifnot(length(case_control_var) == 1,
+            is.character(case_control_var),
+            is.character(case_control_levels))
+
+  # The contrast is fixed by `case_control_levels`, never by how the column
+  # happens to be stored. A character column is ordered alphabetically by the
+  # model matrix ("case" before "control"), which would make the case arm the
+  # reference and flip the sign of every log fold change without an error.
+  case_control_vec <- as.character(seurat_obj@meta.data[[case_control_var]])
+  if(length(case_control_levels) != 2 ||
+     case_control_levels[1] == case_control_levels[2] ||
+     !all(case_control_levels %in% case_control_vec)){
+    stop("`case_control_levels` must be two distinct values that both occur in `",
+         case_control_var, "` (control first, then case); received: ",
+         paste(case_control_levels, collapse = ", "))
+  }
+  seurat_obj@meta.data[[case_control_var]] <- stats::relevel(factor(case_control_vec),
+                                                             ref = case_control_levels[1])
 
   # check that all the variables in c(case_control_var, categorical_vars, numerical_vars) 
   # are unique within each id_var
@@ -62,8 +80,15 @@ dreamlet_helper <- function(case_control_levels, # Control and then Case
   
   res_dl <- dreamlet::dreamlet(res_proc, form)
   
+  # select the case-vs-control coefficient by name, not by its position among
+  # the coefficients
+  coef_name <- paste0(case_control_var, case_control_levels[2])
+  if(!(coef_name %in% dreamlet::coefNames(res_dl))){
+    stop("The coefficient `", coef_name, "` is not in the fitted model, whose ",
+         "coefficients are: ", paste(dreamlet::coefNames(res_dl), collapse = ", "))
+  }
   res_pvalues <- dreamlet::topTable(res_dl,
-                                    coef = paste0(dreamlet::coefNames(res_dl)[2]),
+                                    coef = coef_name,
                                     number = Inf)
   
   return(res_pvalues)

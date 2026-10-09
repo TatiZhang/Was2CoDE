@@ -1,6 +1,7 @@
 # Shared simulated single-cell data for the pseudobulk / DESeq2 / TOST tests.
 # testthat sources helper*.R files before running any test file, so both
-# test_pseudobulk_claude.R and test_deseq2_tost_helper_claude.R can use this.
+# test_pseudobulk.R, test_deseq2_helper.R and test_deseq2_tost_helper_claude.R
+# can all use this.
 
 # Donor-level counts with three gene classes:
 #   - "de"    : true |log2FC| = 2, well expressed   -> should be differential
